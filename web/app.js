@@ -17,6 +17,9 @@ import {
   where,
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
+// Placeholder for Render backend URL (will need to be set properly in production)
+const BACKEND_URL = "http://localhost:8080/api";
+
 const firebaseConfig = {
   apiKey: "AIzaSyBSSDbA9I5u0CIFgLIbqJwArmF4imdCjuU",
   authDomain: "formcheck-ai1.firebaseapp.com",
@@ -74,19 +77,25 @@ async function ensureUserDocument(user) {
 async function loadSessions(userId) {
   sessionList.innerHTML = "";
 
-  const sessionsQuery = query(
-    collection(db, "sessions"),
-    where("userId", "==", userId),
-  );
+  const token = await auth.currentUser.getIdToken();
+  const response = await fetch(`${BACKEND_URL}/sessions`, {
+    headers: {
+      "Authorization": `Bearer ${token}`
+    }
+  });
 
-  const snapshot = await getDocs(sessionsQuery);
-  const sessions = snapshot.docs
-    .map((docSnapshot) => ({ id: docSnapshot.id, ...docSnapshot.data() }))
-    .sort((a, b) => {
-      const aTime = a.createdAt?.toMillis?.() ?? 0;
-      const bTime = b.createdAt?.toMillis?.() ?? 0;
-      return bTime - aTime;
-    });
+  if (!response.ok) {
+    console.error("Failed to load sessions from backend");
+    return;
+  }
+
+  let sessions = await response.json();
+  sessions = sessions.sort((a, b) => {
+    // Handling Firestore timestamps returned as objects from backend
+    const aTime = a.createdAt ? new Date(a.createdAt._seconds ? a.createdAt._seconds * 1000 : a.createdAt).getTime() : 0;
+    const bTime = b.createdAt ? new Date(b.createdAt._seconds ? b.createdAt._seconds * 1000 : b.createdAt).getTime() : 0;
+    return bTime - aTime;
+  });
 
   sessionCount.textContent = String(sessions.length);
   const average = sessions.length
@@ -104,8 +113,10 @@ async function loadSessions(userId) {
   }
 
   for (const session of sessions) {
-    const createdAt =
-      session.createdAt?.toDate?.().toLocaleString() ?? "Unknown date";
+    const createdAt = session.createdAt 
+        ? new Date(session.createdAt._seconds ? session.createdAt._seconds * 1000 : session.createdAt).toLocaleString() 
+        : "Unknown date";
+
     const issues =
       Array.isArray(session.issues) && session.issues.length
         ? session.issues.join(", ")

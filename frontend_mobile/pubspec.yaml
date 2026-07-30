@@ -42,6 +42,7 @@ dependencies:
   path: ^1.9.1
   connectivity_plus: ^7.1.1
   flutter_tts: ^4.2.5
+  http: ^1.6.0
 
 dev_dependencies:
   flutter_test:

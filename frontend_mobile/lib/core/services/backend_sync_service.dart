@@ -1,41 +1,40 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:http/http.dart' as http;
 
 import '../models/workout_session.dart';
 import 'local_session_store.dart';
 
-class FirebaseSyncService {
-  FirebaseSyncService({
+class BackendSyncService {
+  BackendSyncService({
     FirebaseAuth? auth,
-    FirebaseFirestore? firestore,
     Connectivity? connectivity,
     LocalSessionStore? localStore,
   }) : this._internal(
           auth,
-          firestore,
           connectivity ?? Connectivity(),
           localStore ?? LocalSessionStore.instance,
         );
 
-  FirebaseSyncService._internal(
+  BackendSyncService._internal(
     this._auth,
-    this._firestore,
     this._connectivity,
     this._localStore,
   );
 
   final FirebaseAuth? _auth;
-  final FirebaseFirestore? _firestore;
   final Connectivity _connectivity;
   final LocalSessionStore _localStore;
 
-  bool get isConfigured => _auth != null && _firestore != null;
+  // Placeholder for the real backend URL
+  static const String _backendUrl = 'http://10.0.2.2:8080/api';
+
+  bool get isConfigured => _auth != null;
 
   Future<void> syncPendingSessions() async {
     final auth = _auth;
-    final firestore = _firestore;
-    if (auth == null || firestore == null) return;
+    if (auth == null) return;
 
     final connections = await _connectivity.checkConnectivity();
     if (connections.contains(ConnectivityResult.none)) return;
@@ -44,6 +43,11 @@ class FirebaseSyncService {
     if (user == null) return;
 
     final pendingSessions = await _localStore.getUnsyncedSessions();
+    if (pendingSessions.isEmpty) return;
+
+    final token = await user.getIdToken();
+    if (token == null) return;
+
     for (final session in pendingSessions) {
       final sessionForUser = WorkoutSession(
         localId: session.localId,
@@ -57,10 +61,24 @@ class FirebaseSyncService {
         synced: session.synced,
       );
 
-      final doc = await firestore.collection('sessions').add(sessionForUser.toFirestoreMap());
-      final localId = session.localId;
-      if (localId != null) {
-        await _localStore.markSynced(localId: localId, firebaseId: doc.id);
+      final response = await http.post(
+        Uri.parse('$_backendUrl/sessions'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(sessionForUser.toFirestoreMap()),
+      );
+
+      if (response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        final firebaseId = data['id'];
+        final localId = session.localId;
+        if (localId != null) {
+          await _localStore.markSynced(localId: localId, firebaseId: firebaseId);
+        }
+      } else {
+        print('Failed to sync session: ${response.body}');
       }
     }
   }
