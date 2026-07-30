@@ -1,0 +1,80 @@
+name: Ultimate Testing Pipeline & GitHub Pages Deploy
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  run_all_tests:
+    name: Run Comprehensive Test Suites
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python Dependencies
+        run: pip install openpyxl requests
+
+      - name: Run Backend Security Assessment (SAST/DAST)
+        run: python tests/run_security_assessment.py
+
+      - name: Run Selenium Web Tests (Deployed URL)
+        run: python tests/run_selenium_e2e.py
+
+      - name: Run Appium Mobile Tests (Android APK)
+        run: python tests/run_appium_e2e.py
+
+      - name: Run k6 Load Testing (100 VUs)
+        run: python tests/run_load_test.py
+
+      - name: Build HTML Dashboard
+        run: |
+          mkdir -p public/reports/latest
+          cp -r "Test Results/"* public/reports/latest/ || true
+          
+          # Generate index.html for GitHub Pages
+          echo "<html><head><title>Test Reports</title><style>body{font-family:sans-serif; background:#040914; color:white; padding:40px;}</style></head><body>" > public/index.html
+          echo "<h1>FormCheck AI - Ultimate Pipeline Reports</h1>" >> public/index.html
+          echo "<p>Tests executed successfully against Web, Mobile, and API endpoints.</p>" >> public/index.html
+          echo "<ul>" >> public/index.html
+          echo "<li><a href='reports/latest/Excel/Automation_Test_Report_Selenium.xlsx' style='color:#38bdf8'>Download Web Selenium Report</a></li>" >> public/index.html
+          echo "<li><a href='reports/latest/Excel/Automation_Test_Report_Appium.xlsx' style='color:#38bdf8'>Download Appium Mobile Report</a></li>" >> public/index.html
+          echo "<li><a href='reports/latest/Excel/Security_Assessment_Report.xlsx' style='color:#38bdf8'>Download Security SAST/DAST Report</a></li>" >> public/index.html
+          echo "<li><a href='reports/latest/Excel/Load_Test_Report.xlsx' style='color:#38bdf8'>Download k6 Load Test Report</a></li>" >> public/index.html
+          echo "</ul></body></html>" >> public/index.html
+
+      - name: Upload Test Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ultimate-test-reports
+          path: public/reports/latest/
+
+      - name: Upload GitHub Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public/
+
+  deploy_to_pages:
+    name: Deploy Reports to GitHub Pages
+    needs: run_all_tests
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
