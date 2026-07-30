@@ -28,7 +28,7 @@ class BackendSyncService {
   final LocalSessionStore _localStore;
 
   // Placeholder for the real backend URL
-  static const String _backendUrl = 'http://10.0.2.2:8080/api';
+  static const String _backendUrl = 'https://form-checkai.onrender.com/api';
 
   bool get isConfigured => _auth != null;
 

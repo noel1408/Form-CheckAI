@@ -25,7 +25,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
 // Update this in production
-const BACKEND_URL = "http://localhost:8080/api";
+const BACKEND_URL = "https://form-checkai.onrender.com/api";
 
 // DOM Elements
 const navbar = document.querySelector("#navbar");
