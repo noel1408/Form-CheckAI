@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: formcheck-ai-backend
+    env: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: FIREBASE_SERVICE_ACCOUNT
+        sync: false # Requires manual entry in the Render Dashboard
+      - key: NODE_VERSION
+        value: 20
