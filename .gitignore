@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# Local data
+*.db
+*.sqlite
+*.sqlite3
+
+# Firebase / build output
+.firebase/
+firebase-debug.log
+
+# Local non-admin tools
+tools/node-*/
+tools/firebase-cli/
+tools/flutter/
+tools/android-sdk/
+tools/*.zip
+tools/*.txt
+!tools/README.md
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/

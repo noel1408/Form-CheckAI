@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FormCheck AI Dashboard</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="hero">
+        <p class="eyebrow">FormCheck AI</p>
+        <h1>Shared workout history for mobile and web</h1>
+        <p>Sign in with Firebase to view synced exercise sessions from your mobile app.</p>
+      </section>
+
+      <section id="auth-card" class="card">
+        <h2>Login</h2>
+        <label>
+          Email
+          <input id="email" type="email" placeholder="you@example.com" />
+        </label>
+        <label>
+          Password
+          <input id="password" type="password" placeholder="Password" />
+        </label>
+        <div class="actions">
+          <button id="login-btn">Login</button>
+          <button id="signup-btn" class="secondary">Create account</button>
+        </div>
+        <p id="auth-message" class="message"></p>
+      </section>
+
+      <section id="dashboard" class="card hidden">
+        <div class="dashboard-header">
+          <div>
+            <p class="eyebrow">Dashboard</p>
+            <h2>Your sessions</h2>
+          </div>
+          <button id="logout-btn" class="secondary">Logout</button>
+        </div>
+
+        <div class="stats">
+          <article>
+            <span id="session-count">0</span>
+            <p>Total sessions</p>
+          </article>
+          <article>
+            <span id="avg-score">0</span>
+            <p>Average score</p>
+          </article>
+        </div>
+
+        <ul id="session-list" class="session-list"></ul>
+      </section>
+    </main>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
