@@ -5,10 +5,10 @@ plugins {
 }
 
 android {
-    namespace = "com.example.formchecknative"
+    namespace = "com.simats.formcheck"
     compileSdk = 36
     defaultConfig {
-        applicationId = "com.example.formchecknative"
+        applicationId = "com.simats.formcheck"
         minSdk = 24
         targetSdk = 36
         versionCode = 1

@@ -29,7 +29,7 @@ async function main() {
         console.log("Appium connected. Executing tests...");
         
         // Test 1: App Launches
-        const isAppInstalled = await driver.isAppInstalled('com.example.formchecknative');
+        const isAppInstalled = await driver.isAppInstalled('com.simats.formcheck');
         results.push({ name: 'E2E Mobile - App installs and launches successfully', status: isAppInstalled ? 'PASSED' : 'FAILED' });
         
         // Wait for Native UI (implicitly waiting)
@@ -37,7 +37,7 @@ async function main() {
         
         // Check if the current package is the correct one.
         const currentPackage = await driver.getCurrentPackage();
-        results.push({ name: `E2E Mobile - Package is correct (${currentPackage})`, status: currentPackage === 'com.example.formchecknative' ? 'PASSED' : 'FAILED' });
+        results.push({ name: `E2E Mobile - Package is correct (${currentPackage})`, status: currentPackage === 'com.simats.formcheck' ? 'PASSED' : 'FAILED' });
 
         // Add mock tests to hit the target count needed for the dashboard
         for(let i = 0; i < 448; i++) {
