@@ -4,13 +4,34 @@ import '../../core/models/workout_session.dart';
 import '../../core/services/local_session_store.dart';
 import '../../shared/widgets/score_badge.dart';
 
+import 'package:firebase_auth/firebase_auth.dart';
+import '../auth/login_screen.dart';
+
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
+
+  Future<void> _logout(BuildContext context) async {
+    await FirebaseAuth.instance.signOut();
+    if (context.mounted) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (route) => false,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
+      appBar: AppBar(
+        title: const Text('Profile'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () => _logout(context),
+          )
+        ],
+      ),
       body: SafeArea(
         child: FutureBuilder<List<WorkoutSession>>(
           future: LocalSessionStore.instance.getAllSessions(),
@@ -137,6 +158,10 @@ class _ProfileHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    final displayName = user?.displayName ?? 'FormCheck User';
+    final email = user?.email ?? 'Not logged in';
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -147,19 +172,24 @@ class _ProfileHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const CircleAvatar(
+          CircleAvatar(
             radius: 34,
             backgroundColor: Colors.white24,
-            child: Icon(Icons.person, size: 38, color: Colors.white),
+            backgroundImage: user?.photoURL != null ? NetworkImage(user!.photoURL!) : null,
+            child: user?.photoURL == null ? const Icon(Icons.person, size: 38, color: Colors.white) : null,
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'FormCheck User',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                Text(
+                  displayName,
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                ),
+                Text(
+                  email,
+                  style: const TextStyle(color: Colors.white70, fontSize: 14),
                 ),
                 const SizedBox(height: 6),
                 Text(
