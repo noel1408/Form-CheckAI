@@ -9,6 +9,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import com.example.formchecknative.theme.FormCheckNativeTheme
+import com.example.formchecknative.ui.auth.AuthScreen
 
 class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -16,7 +17,11 @@ class MainActivity : ComponentActivity() {
 
     enableEdgeToEdge()
     setContent {
-      FormCheckNativeTheme { Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) { MainNavigation() } }
+      FormCheckNativeTheme {
+        AuthScreen(
+          onNavigateToHome = { /* TODO: Nav Graph */ }
+        )
+      }
     }
   }
 }

@@ -1,0 +1,104 @@
+package com.example.formchecknative.ui.auth
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.formchecknative.theme.PrimaryCyan
+import com.example.formchecknative.theme.TextPrimary
+import com.example.formchecknative.theme.TextSecondary
+import com.example.formchecknative.theme.glassmorphism
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AuthScreen(
+    onNavigateToHome: () -> Unit
+) {
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .glassmorphism()
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                text = "FormCheck AI",
+                color = PrimaryCyan,
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold
+            )
+            
+            Text(
+                text = "Native Kotlin Edition",
+                color = TextSecondary,
+                fontSize = 14.sp
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it },
+                label = { Text("Email", color = TextSecondary) },
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    focusedBorderColor = PrimaryCyan,
+                    unfocusedBorderColor = TextSecondary,
+                    focusedTextColor = TextPrimary,
+                    unfocusedTextColor = TextPrimary
+                ),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text("Password", color = TextSecondary) },
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    focusedBorderColor = PrimaryCyan,
+                    unfocusedBorderColor = TextSecondary,
+                    focusedTextColor = TextPrimary,
+                    unfocusedTextColor = TextPrimary
+                ),
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Button(
+                onClick = onNavigateToHome,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryCyan)
+            ) {
+                Text("Sign In", color = MaterialTheme.colorScheme.background, fontWeight = FontWeight.Bold)
+            }
+
+            TextButton(onClick = { /* TODO */ }) {
+                Text("Forgot Password?", color = PrimaryCyan)
+            }
+        }
+    }
+}
