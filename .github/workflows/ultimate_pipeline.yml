@@ -13,8 +13,87 @@ permissions:
   id-token: write
 
 jobs:
-  run_all_tests:
-    name: Run Comprehensive Test Suites
+  build_android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.22.0'
+          channel: 'stable'
+
+      - name: Build Flutter APK
+        working-directory: frontend_mobile
+        run: |
+          flutter pub get
+          flutter build apk --debug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: frontend_mobile/build/app/outputs/flutter-apk/app-debug.apk
+
+  run_appium:
+    name: Run Appium Tests on Real Emulator
+    needs: build_android
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: app-debug-apk
+          path: app-build
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Appium & Dependencies
+        run: |
+          npm install -g appium
+          appium driver install uiautomator2
+          cd tests && npm install
+
+      - name: Start Appium Server
+        run: appium &
+        
+      - name: Wait for Appium
+        run: sleep 5
+
+      - name: Run Emulator & Tests
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          APK_PATH: ../app-build/app-debug.apk
+        with:
+          api-level: 30
+          target: default
+          arch: x86_64
+          profile: pixel_6
+          script: cd tests && node real_appium_test.js
+
+      - name: Upload Appium Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: appium-report
+          path: Test Results/Excel/Automation_Test_Report_Appium.xlsx
+
+  run_other_tests:
+    name: Run Core Python Tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -28,53 +107,61 @@ jobs:
       - name: Install Python Dependencies
         run: pip install openpyxl requests
 
-      - name: Run Backend Security Assessment (SAST/DAST)
+      - name: Run Backend Security Assessment
         run: python tests/run_security_assessment.py
 
-      - name: Run Selenium Web Tests (Deployed URL)
+      - name: Run Selenium Web Tests
         run: python tests/run_selenium_e2e.py
 
-      - name: Run Appium Mobile Tests (Android APK)
-        run: python tests/run_appium_e2e.py
-
-      - name: Run k6 Load Testing (100 VUs)
+      - name: Run k6 Load Testing
         run: python tests/run_load_test.py
+
+      - name: Upload Python Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-reports
+          path: Test Results/
+
+  deploy_to_pages:
+    name: Deploy Reports to GitHub Pages
+    needs: [run_appium, run_other_tests]
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Download Appium Report
+        uses: actions/download-artifact@v4
+        with:
+          name: appium-report
+          path: public/reports/latest/Excel
+
+      - name: Download Python Reports
+        uses: actions/download-artifact@v4
+        with:
+          name: python-reports
+          path: public/reports/latest
 
       - name: Build HTML Dashboard
         run: |
-          mkdir -p public/reports/latest
-          cp -r "Test Results/"* public/reports/latest/ || true
-          
-          # Generate index.html for GitHub Pages
           echo "<html><head><title>Test Reports</title><style>body{font-family:sans-serif; background:#040914; color:white; padding:40px;}</style></head><body>" > public/index.html
           echo "<h1>FormCheck AI - Ultimate Pipeline Reports</h1>" >> public/index.html
           echo "<p>Tests executed successfully against Web, Mobile, and API endpoints.</p>" >> public/index.html
           echo "<ul>" >> public/index.html
           echo "<li><a href='reports/latest/Excel/Automation_Test_Report_Selenium.xlsx' style='color:#38bdf8'>Download Web Selenium Report</a></li>" >> public/index.html
-          echo "<li><a href='reports/latest/Excel/Automation_Test_Report_Appium.xlsx' style='color:#38bdf8'>Download Appium Mobile Report</a></li>" >> public/index.html
+          echo "<li><a href='reports/latest/Excel/Automation_Test_Report_Appium.xlsx' style='color:#38bdf8'>Download Appium Mobile Report (Real Emulator)</a></li>" >> public/index.html
           echo "<li><a href='reports/latest/Excel/Security_Assessment_Report.xlsx' style='color:#38bdf8'>Download Security SAST/DAST Report</a></li>" >> public/index.html
           echo "<li><a href='reports/latest/Excel/Load_Test_Report.xlsx' style='color:#38bdf8'>Download k6 Load Test Report</a></li>" >> public/index.html
           echo "</ul></body></html>" >> public/index.html
-
-      - name: Upload Test Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ultimate-test-reports
-          path: public/reports/latest/
 
       - name: Upload GitHub Pages Artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: public/
 
-  deploy_to_pages:
-    name: Deploy Reports to GitHub Pages
-    needs: run_all_tests
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

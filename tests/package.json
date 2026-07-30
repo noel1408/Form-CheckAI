@@ -1,0 +1,8 @@
+{
+  "name": "formcheck-appium-tests",
+  "version": "1.0.0",
+  "dependencies": {
+    "exceljs": "^4.4.0",
+    "webdriverio": "^8.32.4"
+  }
+}
