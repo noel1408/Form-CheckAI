@@ -7,7 +7,7 @@ async function main() {
         "platformName": "Android",
         "appium:deviceName": "Android Emulator",
         "appium:automationName": "UiAutomator2",
-        "appium:app": process.env.APK_PATH || "../frontend_mobile/build/app/outputs/flutter-apk/app-debug.apk",
+        "appium:app": process.env.APK_PATH || "../frontend_native/app/build/outputs/apk/debug/app-debug.apk",
         "appium:autoGrantPermissions": true,
         "appium:ensureWebviewsHavePages": true,
         "appium:nativeWebScreenshot": true,
@@ -29,16 +29,15 @@ async function main() {
         console.log("Appium connected. Executing tests...");
         
         // Test 1: App Launches
-        const isAppInstalled = await driver.isAppInstalled('com.example.frontend_mobile');
+        const isAppInstalled = await driver.isAppInstalled('com.example.formchecknative');
         results.push({ name: 'E2E Mobile - App installs and launches successfully', status: isAppInstalled ? 'PASSED' : 'FAILED' });
         
-        // Wait for Flutter UI (implicitly waiting)
+        // Wait for Native UI (implicitly waiting)
         await driver.pause(3000);
         
-        // Since we are interacting with a Flutter app without flutter-driver in this generic uiautomator2 test,
-        // we'll just check if the current package is the correct one.
+        // Check if the current package is the correct one.
         const currentPackage = await driver.getCurrentPackage();
-        results.push({ name: `E2E Mobile - Package is correct (${currentPackage})`, status: currentPackage === 'com.example.frontend_mobile' ? 'PASSED' : 'FAILED' });
+        results.push({ name: `E2E Mobile - Package is correct (${currentPackage})`, status: currentPackage === 'com.example.formchecknative' ? 'PASSED' : 'FAILED' });
 
         // Add mock tests to hit the target count needed for the dashboard
         for(let i = 0; i < 448; i++) {
