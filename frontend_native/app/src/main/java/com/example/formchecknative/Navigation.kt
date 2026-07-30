@@ -44,10 +44,9 @@ fun MainNavigation() {
         }
 
         entry<Camera> {
-          // Stub for CameraScreen
-          androidx.compose.material3.Text(
-              "Camera Screen Placeholder: ${it.exerciseId}", 
-              color = androidx.compose.ui.graphics.Color.White
+          com.example.formchecknative.ui.camera.CameraScreen(
+              exerciseId = it.exerciseId,
+              onNavigateBack = { backStack.removeLastOrNull() }
           )
         }
       },
