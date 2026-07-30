@@ -18,9 +18,7 @@ class MainActivity : ComponentActivity() {
     enableEdgeToEdge()
     setContent {
       FormCheckNativeTheme {
-        AuthScreen(
-          onNavigateToHome = { /* TODO: Nav Graph */ }
-        )
+        MainNavigation()
       }
     }
   }
