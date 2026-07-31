@@ -8,7 +8,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
 
   async function handleSubmit(e) {
@@ -20,6 +20,20 @@ export default function Login() {
       navigate('/dashboard');
     } catch (err) {
       setError('Failed to sign in. Please check your credentials.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleGoogleLogin() {
+    try {
+      setError('');
+      setLoading(true);
+      await loginWithGoogle();
+      navigate('/dashboard');
+    } catch (err) {
+      setError('Failed to sign in with Google.');
       console.error(err);
     } finally {
       setLoading(false);
@@ -71,6 +85,21 @@ export default function Login() {
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
+
+        <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0' }}>
+          <div style={{ flex: 1, height: '1px', background: 'var(--border-glass)' }}></div>
+          <span style={{ margin: '0 10px', color: 'var(--text-secondary)', fontSize: '14px' }}>or</span>
+          <div style={{ flex: 1, height: '1px', background: 'var(--border-glass)' }}></div>
+        </div>
+
+        <button 
+          disabled={loading} 
+          onClick={handleGoogleLogin}
+          className="glass-button" 
+          style={{ background: 'transparent', border: '1px solid var(--primary-cyan)', color: 'var(--primary-cyan)' }}
+        >
+          Sign In with Google
+        </button>
 
         <div style={{ textAlign: 'center', marginTop: '24px', fontSize: '14px', color: 'var(--text-secondary)' }}>
           Don't have an account? <Link to="/register" style={{ color: 'var(--primary-cyan)', textDecoration: 'none' }}>Sign up</Link>
