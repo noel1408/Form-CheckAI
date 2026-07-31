@@ -22,7 +22,7 @@ import java.util.concurrent.Executors
 @OptIn(ExperimentalGetImage::class)
 @Composable
 fun CameraPreview(
-    onPoseDetected: (Pose) -> Unit,
+    onPoseDetected: (Pose, Int, Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -48,10 +48,16 @@ fun CameraPreview(
             imageAnalysis.setAnalyzer(cameraExecutor) { imageProxy ->
                 val mediaImage = imageProxy.image
                 if (mediaImage != null) {
-                    val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
+                    val rotation = imageProxy.imageInfo.rotationDegrees
+                    val image = InputImage.fromMediaImage(mediaImage, rotation)
                     poseDetector.processImage(image)
                         .addOnSuccessListener { pose ->
-                            onPoseDetected(pose)
+                            // Correct dimensions based on rotation
+                            if (rotation == 90 || rotation == 270) {
+                                onPoseDetected(pose, imageProxy.height, imageProxy.width)
+                            } else {
+                                onPoseDetected(pose, imageProxy.width, imageProxy.height)
+                            }
                         }
                         .addOnFailureListener { e ->
                             Log.e("CameraPreview", "Pose detection failed", e)

@@ -2,15 +2,16 @@ plugins {
   alias(libs.plugins.android.application)
   alias(libs.plugins.compose.compiler)
   alias(libs.plugins.kotlin.serialization)
+  alias(libs.plugins.google.services)
 }
 
 android {
     namespace = "com.simats.formcheck"
-    compileSdk = 36
+    compileSdk = 35
     defaultConfig {
         applicationId = "com.simats.formcheck"
         minSdk = 24
-        targetSdk = 36
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
     }
@@ -83,6 +84,11 @@ dependencies {
   implementation(libs.androidx.navigation3.runtime)
   implementation(libs.androidx.lifecycle.viewmodel.navigation3)
 
+  // Google Sign In & Credentials
+  implementation(libs.androidx.credentials)
+  implementation(libs.androidx.credentials.play.services.auth)
+  implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
+
   // CameraX
   implementation(libs.camerax.core)
   implementation(libs.camerax.camera2)
@@ -100,8 +106,6 @@ dependencies {
   // Room DB
   implementation(libs.room.runtime)
   implementation(libs.room.ktx)
-  // kapt is needed for room compiler normally, or ksp
-  // annotationProcessor(libs.room.compiler)
 
   // Firebase Auth
   implementation(platform(libs.firebase.bom))

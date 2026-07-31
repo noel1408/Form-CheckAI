@@ -12,18 +12,25 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import com.simats.formcheck.theme.PrimaryCyan
 import com.simats.formcheck.theme.TextPrimary
 import com.simats.formcheck.theme.TextSecondary
 import com.simats.formcheck.theme.glassmorphism
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AuthScreen(
     onNavigateToHome: () -> Unit
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val signInHelper = remember { GoogleSignInHelper(context) }
+    
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -84,16 +91,39 @@ fun AuthScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            Button(
-                onClick = onNavigateToHome,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryCyan)
-            ) {
-                Text("Sign In", color = MaterialTheme.colorScheme.background, fontWeight = FontWeight.Bold)
+            if (isLoading) {
+                CircularProgressIndicator(color = PrimaryCyan)
+            } else {
+                Button(
+                    onClick = onNavigateToHome,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryCyan)
+                ) {
+                    Text("Sign In", color = MaterialTheme.colorScheme.background, fontWeight = FontWeight.Bold)
+                }
+
+                OutlinedButton(
+                    onClick = {
+                        scope.launch {
+                            isLoading = true
+                            if (signInHelper.signIn()) {
+                                onNavigateToHome()
+                            }
+                            isLoading = false
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryCyan),
+                    border = ButtonDefaults.outlinedButtonBorder.copy(brush = androidx.compose.ui.graphics.SolidColor(PrimaryCyan))
+                ) {
+                    Text("Sign In with Google", fontWeight = FontWeight.Bold)
+                }
             }
 
             TextButton(onClick = { /* TODO */ }) {

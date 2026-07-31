@@ -4,19 +4,13 @@ import com.google.android.gms.tasks.Task
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.pose.Pose
 import com.google.mlkit.vision.pose.PoseDetection
-import com.google.mlkit.vision.pose.PoseDetectorOptions
 import com.google.mlkit.vision.pose.accurate.AccuratePoseDetectorOptions
 
+
 class PoseDetector(accurate: Boolean = true) {
-    private val options = if (accurate) {
-        AccuratePoseDetectorOptions.Builder()
-            .setDetectorMode(AccuratePoseDetectorOptions.STREAM_MODE)
-            .build()
-    } else {
-        PoseDetectorOptions.Builder()
-            .setDetectorMode(PoseDetectorOptions.STREAM_MODE)
-            .build()
-    }
+    private val options = AccuratePoseDetectorOptions.Builder()
+        .setDetectorMode(AccuratePoseDetectorOptions.STREAM_MODE)
+        .build()
 
     private val detector = PoseDetection.getClient(options)
 
