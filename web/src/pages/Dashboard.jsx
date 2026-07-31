@@ -47,19 +47,15 @@ export default function Dashboard() {
     }
   }
 
-  // Mock data for the chart since backend sessions might be empty initially
-  const chartData = sessions.length > 0 ? sessions.map((s, i) => ({
+  // Real data for the chart
+  const chartData = sessions.map((s, i) => ({
     name: `Session ${i+1}`,
-    score: s.score || Math.floor(Math.random() * 100),
-  })) : [
-    { name: 'Mon', score: 65 },
-    { name: 'Tue', score: 78 },
-    { name: 'Wed', score: 82 },
-    { name: 'Thu', score: 85 },
-    { name: 'Fri', score: 92 },
-    { name: 'Sat', score: 88 },
-    { name: 'Sun', score: 95 },
-  ];
+    score: s.score || 0,
+  }));
+
+  const avgScore = sessions.length > 0 
+    ? Math.round(sessions.reduce((acc, s) => acc + (s.score || 0), 0) / sessions.length) 
+    : 0;
 
   if (loading) {
     return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: 'var(--primary-cyan)' }}>Loading Dashboard...</div>;
@@ -68,10 +64,19 @@ export default function Dashboard() {
   return (
     <div style={{ padding: '40px', maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
-        <div>
-          <h1 style={{ margin: '0 0 8px 0', fontSize: '32px' }}>Welcome back, {profile?.name || 'Athlete'}</h1>
-          <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Here is your recent training analysis.</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', flexWrap: 'wrap', gap: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+          {currentUser.photoURL ? (
+            <img src={currentUser.photoURL} alt="Profile" style={{ width: '64px', height: '64px', borderRadius: '50%', border: '2px solid var(--primary-cyan)' }} />
+          ) : (
+            <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--primary-cyan-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--primary-cyan)' }}>
+              <User size={32} color="var(--primary-cyan)" />
+            </div>
+          )}
+          <div>
+            <h1 style={{ margin: '0 0 8px 0', fontSize: '32px' }}>Welcome back, {profile?.name || currentUser.displayName || 'Athlete'}</h1>
+            <p style={{ color: 'var(--text-secondary)', margin: 0 }}>{currentUser.email}</p>
+          </div>
         </div>
         <button onClick={handleLogout} className="glass-button" style={{ width: 'auto', padding: '10px 20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <LogOut size={18} /> Logout
@@ -86,7 +91,7 @@ export default function Dashboard() {
           </div>
           <div>
             <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '14px' }}>Total Sessions</p>
-            <h2 style={{ margin: '4px 0 0 0', fontSize: '28px' }}>{sessions.length || 12}</h2>
+            <h2 style={{ margin: '4px 0 0 0', fontSize: '28px' }}>{sessions.length}</h2>
           </div>
         </div>
 
@@ -96,7 +101,7 @@ export default function Dashboard() {
           </div>
           <div>
             <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '14px' }}>Avg Form Score</p>
-            <h2 style={{ margin: '4px 0 0 0', fontSize: '28px' }}>87%</h2>
+            <h2 style={{ margin: '4px 0 0 0', fontSize: '28px' }}>{sessions.length > 0 ? `${avgScore}%` : 'N/A'}</h2>
           </div>
         </div>
 
@@ -106,7 +111,7 @@ export default function Dashboard() {
           </div>
           <div>
             <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '14px' }}>Fitness Goal</p>
-            <h2 style={{ margin: '4px 0 0 0', fontSize: '20px', textTransform: 'capitalize' }}>{profile?.fitnessGoal?.replace('_', ' ') || 'General Fitness'}</h2>
+            <h2 style={{ margin: '4px 0 0 0', fontSize: '20px', textTransform: 'capitalize' }}>{profile?.fitnessGoal?.replace('_', ' ') || 'Not Set'}</h2>
           </div>
         </div>
       </div>
@@ -117,26 +122,34 @@ export default function Dashboard() {
           <TrendingUp size={24} color="var(--primary-cyan)" />
           <h3 style={{ margin: 0, fontSize: '20px' }}>Performance Trend (Form Score)</h3>
         </div>
-        <div style={{ height: '400px', width: '100%' }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-              <defs>
-                <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="var(--primary-cyan)" stopOpacity={0.8}/>
-                  <stop offset="95%" stopColor="var(--primary-cyan)" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-glass)" vertical={false} />
-              <XAxis dataKey="name" stroke="var(--text-secondary)" tick={{fill: 'var(--text-secondary)'}} />
-              <YAxis stroke="var(--text-secondary)" tick={{fill: 'var(--text-secondary)'}} />
-              <Tooltip 
-                contentStyle={{ backgroundColor: 'var(--bg-dark)', border: '1px solid var(--primary-cyan)', borderRadius: '8px' }}
-                itemStyle={{ color: 'var(--primary-cyan)' }}
-              />
-              <Area type="monotone" dataKey="score" stroke="var(--primary-cyan)" strokeWidth={3} fillOpacity={1} fill="url(#colorScore)" />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+        
+        {sessions.length > 0 ? (
+          <div style={{ height: '400px', width: '100%' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--primary-cyan)" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="var(--primary-cyan)" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-glass)" vertical={false} />
+                <XAxis dataKey="name" stroke="var(--text-secondary)" tick={{fill: 'var(--text-secondary)'}} />
+                <YAxis stroke="var(--text-secondary)" tick={{fill: 'var(--text-secondary)'}} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: 'var(--bg-dark)', border: '1px solid var(--primary-cyan)', borderRadius: '8px' }}
+                  itemStyle={{ color: 'var(--primary-cyan)' }}
+                />
+                <Area type="monotone" dataKey="score" stroke="var(--primary-cyan)" strokeWidth={3} fillOpacity={1} fill="url(#colorScore)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '16px' }}>
+            <Activity size={48} color="var(--text-secondary)" opacity={0.5} />
+            <p style={{ color: 'var(--text-secondary)', margin: 0 }}>No sessions recorded yet. Start training in the mobile app to see your progress!</p>
+          </div>
+        )}
       </div>
     </div>
   );
