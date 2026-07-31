@@ -84,7 +84,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: appium-report
-          path: Test Results/Excel/Automation_Test_Report_Appium.xlsx
+          path: tests/Test Results/Excel/Automation_Test_Report_Appium.xlsx
 
   run_other_tests:
     name: Run Core Python Tests
