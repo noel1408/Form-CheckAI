@@ -17,8 +17,8 @@ class GoogleSignInHelper(private val context: Context) {
 
     suspend fun signIn(): Boolean {
         try {
-            // NOTE: You must replace this with your actual Web Client ID from Firebase Console
-            val webClientId = "107212643000159054381-placeholder.apps.googleusercontent.com" 
+            // Using the real Web Client ID from your google-services.json
+            val webClientId = "121384975529-85s3m21da9rj2l771a24r2p6latjp640.apps.googleusercontent.com" 
 
             val googleIdOption = GetGoogleIdOption.Builder()
                 .setFilterByAuthorizedAccounts(false)
