@@ -1,52 +1,16 @@
-# FormCheck AI Web Dashboard
+# React + Vite
 
-Static Firebase Hosting dashboard for FormCheck AI.
+This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
-## Scope
+Currently, two official plugins are available:
 
-This is the hosted web app. It is separate from the Android Flutter mobile app in `frontend_mobile/`.
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
 
-## Features
+## React Compiler
 
-- Firebase Email/Password signup and login
-- User document creation in Firestore
-- Session history from Firestore
-- Total session count
-- Average score
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-## Firebase project
+## Expanding the Oxlint configuration
 
-```text
-Project ID: formcheck-ai1
-Hosting URL: https://formcheck-ai1.web.app
-```
-
-## Local test
-
-From the project root:
-
-```powershell
-.\.venv\Scripts\python.exe -m http.server 8080 -d web
-```
-
-Open:
-
-```text
-http://localhost:8080
-```
-
-## Deploy
-
-This project uses the local Firebase CLI installed in `tools/firebase-cli`.
-
-Login:
-
-```powershell
-cmd /c "set PATH=D:\FormCheckAI\tools\node-v24.16.0-win-x64;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0&&tools\firebase-cli\node_modules\.bin\firebase.cmd login"
-```
-
-Deploy Hosting + Firestore rules:
-
-```powershell
-cmd /c "set PATH=D:\FormCheckAI\tools\node-v24.16.0-win-x64;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0&&tools\firebase-cli\node_modules\.bin\firebase.cmd deploy"
-```
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
