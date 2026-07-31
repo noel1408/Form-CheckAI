@@ -1,0 +1,43 @@
+{
+  "project_info": {
+    "project_number": "1234567890",
+    "firebase_url": "https://dummy-project.firebaseio.com",
+    "project_id": "dummy-project",
+    "storage_bucket": "dummy-project.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1234567890:android:abc123def456",
+        "android_client_info": {
+          "package_name": "com.simats.formcheck"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1234567890-dummyclientid.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.simats.formcheck",
+            "certificate_hash": "dummy_hash"
+          }
+        },
+        {
+          "client_id": "1234567890-dummywebclient.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "dummy_api_key_for_build_so_it_doesnt_crash"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
