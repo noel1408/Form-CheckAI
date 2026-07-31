@@ -32,7 +32,8 @@ export default function Register() {
       // Optionally, push initial profile to backend immediately
       try {
         const token = await userCredential.user.getIdToken();
-        await axios.put('http://localhost:8080/api/users/profile', { name }, {
+        const API_URL = import.meta.env.VITE_API_URL || "https://form-checkai.onrender.com";
+        await axios.put(`${API_URL}/api/users/profile`, { name }, {
           headers: { Authorization: `Bearer ${token}` }
         });
       } catch (err) {

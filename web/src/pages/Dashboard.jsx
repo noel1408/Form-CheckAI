@@ -17,10 +17,11 @@ export default function Dashboard() {
       try {
         const token = await currentUser.getIdToken();
         const headers = { Authorization: `Bearer ${token}` };
+        const API_URL = import.meta.env.VITE_API_URL || "https://form-checkai.onrender.com";
         
         const [profileRes, sessionsRes] = await Promise.all([
-          axios.get('http://localhost:8080/api/users/profile', { headers }),
-          axios.get('http://localhost:8080/api/sessions', { headers })
+          axios.get(`${API_URL}/api/users/profile`, { headers }),
+          axios.get(`${API_URL}/api/sessions`, { headers })
         ]);
 
         setProfile(profileRes.data);
