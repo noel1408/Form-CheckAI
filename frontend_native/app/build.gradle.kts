@@ -7,11 +7,11 @@ plugins {
 
 android {
     namespace = "com.simats.formcheck"
-    compileSdk = 35
+    compileSdk = 36
     defaultConfig {
         applicationId = "com.simats.formcheck"
         minSdk = 24
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
     }
@@ -87,7 +87,7 @@ dependencies {
   // Google Sign In & Credentials
   implementation(libs.androidx.credentials)
   implementation(libs.androidx.credentials.play.services.auth)
-  implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
+  implementation(libs.googleid)
 
   // CameraX
   implementation(libs.camerax.core)
