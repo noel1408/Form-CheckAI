@@ -16,6 +16,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.simats.formcheck.theme.PrimaryCyan
 import com.simats.formcheck.theme.TextPrimary
 import com.simats.formcheck.theme.TextSecondary
+import com.simats.formcheck.theme.ErrorRed
 import com.simats.formcheck.theme.glassmorphism
 import kotlinx.coroutines.launch
 
@@ -31,6 +32,8 @@ fun AuthScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
+    var resetMessage by remember { mutableStateOf("") }
+    var resetError by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -126,7 +129,33 @@ fun AuthScreen(
                 }
             }
 
-            TextButton(onClick = { /* TODO */ }) {
+            if (resetMessage.isNotEmpty()) {
+                Text(
+                    text = resetMessage,
+                    color = if (resetError) ErrorRed else PrimaryCyan,
+                    fontSize = 14.sp
+                )
+            }
+
+            TextButton(onClick = { 
+                if (email.isNotBlank()) {
+                    resetMessage = "Sending reset link..."
+                    resetError = false
+                    com.google.firebase.auth.FirebaseAuth.getInstance().sendPasswordResetEmail(email)
+                        .addOnCompleteListener { task ->
+                            if (task.isSuccessful) {
+                                resetMessage = "Check your email for reset instructions."
+                                resetError = false
+                            } else {
+                                resetMessage = task.exception?.message ?: "Failed to send reset link."
+                                resetError = true
+                            }
+                        }
+                } else {
+                    resetMessage = "Please enter your email in the field above first."
+                    resetError = true
+                }
+            }) {
                 Text("Forgot Password?", color = PrimaryCyan)
             }
         }

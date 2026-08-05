@@ -9,6 +9,15 @@ export default function ProfileModal({ isOpen, onClose, currentUser, profile, on
   const [progress, setProgress] = useState(profile?.progress || '');
   const [loading, setLoading] = useState(false);
 
+  React.useEffect(() => {
+    if (isOpen) {
+      setName(profile?.name || currentUser?.displayName || '');
+      setFitnessGoal(profile?.fitnessGoal || '');
+      setWeight(profile?.weight || '');
+      setProgress(profile?.progress || '');
+    }
+  }, [isOpen, profile, currentUser]);
+
   if (!isOpen) return null;
 
   async function handleSave(e) {
