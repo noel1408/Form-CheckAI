@@ -122,7 +122,7 @@ app.get('/api/users/profile', verifyToken, async (req, res) => {
 app.put('/api/users/profile', verifyToken, async (req, res) => {
   try {
     const userId = req.user.uid;
-    const { name, fitnessGoal } = req.body;
+    const { name, fitnessGoal, weight, progress } = req.body;
     
     const docRef = db.collection('users').doc(userId);
     const updates = {
@@ -130,6 +130,8 @@ app.put('/api/users/profile', verifyToken, async (req, res) => {
     };
     if (name) updates.name = name;
     if (fitnessGoal) updates.fitnessGoal = fitnessGoal;
+    if (weight) updates.weight = weight;
+    if (progress !== undefined) updates.progress = progress;
     
     await docRef.set(updates, { merge: true });
     res.status(200).json({ success: true });

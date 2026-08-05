@@ -2,8 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { LogOut, User, Activity, Dumbbell, TrendingUp } from 'lucide-react';
+import { LogOut, User, Activity, Dumbbell, TrendingUp, Edit2 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import Toast from '../components/Toast';
+import ProfileModal from '../components/ProfileModal';
 
 export default function Dashboard() {
   const { currentUser, logout } = useAuth();
@@ -11,6 +13,10 @@ export default function Dashboard() {
   const [profile, setProfile] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // UI States
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
   useEffect(() => {
     async function fetchData() {
@@ -47,6 +53,10 @@ export default function Dashboard() {
     }
   }
 
+  function showToast(message, type = 'success') {
+    setToast({ show: true, message, type });
+  }
+
   // Real data for the chart
   const chartData = sessions.map((s, i) => ({
     name: `Session ${i+1}`,
@@ -78,9 +88,15 @@ export default function Dashboard() {
             <p style={{ color: 'var(--text-secondary)', margin: 0 }}>{currentUser.email}</p>
           </div>
         </div>
-        <button onClick={handleLogout} className="glass-button" style={{ width: 'auto', padding: '10px 20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <LogOut size={18} /> Logout
-        </button>
+        
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button onClick={() => setIsModalOpen(true)} className="glass-button" style={{ width: 'auto', padding: '10px 20px', display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--primary-cyan-dim)', border: '1px solid var(--primary-cyan)' }}>
+            <Edit2 size={18} color="var(--primary-cyan)" /> <span style={{ color: 'var(--primary-cyan)' }}>Edit Profile</span>
+          </button>
+          <button onClick={handleLogout} className="glass-button" style={{ width: 'auto', padding: '10px 20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <LogOut size={18} /> Logout
+          </button>
+        </div>
       </div>
 
       {/* Stats Grid */}
@@ -112,6 +128,26 @@ export default function Dashboard() {
           <div>
             <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '14px' }}>Fitness Goal</p>
             <h2 style={{ margin: '4px 0 0 0', fontSize: '20px', textTransform: 'capitalize' }}>{profile?.fitnessGoal?.replace('_', ' ') || 'Not Set'}</h2>
+          </div>
+        </div>
+
+        <div className="glass-panel" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ background: 'var(--primary-cyan-dim)', padding: '16px', borderRadius: '12px' }}>
+            <TrendingUp size={32} color="var(--primary-cyan)" />
+          </div>
+          <div>
+            <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '14px' }}>Weight</p>
+            <h2 style={{ margin: '4px 0 0 0', fontSize: '20px' }}>{profile?.weight || 'Not Set'}</h2>
+          </div>
+        </div>
+
+        <div className="glass-panel" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ background: 'var(--primary-cyan-dim)', padding: '16px', borderRadius: '12px' }}>
+            <Activity size={32} color="var(--primary-cyan)" />
+          </div>
+          <div>
+            <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '14px' }}>Notes</p>
+            <p style={{ margin: '4px 0 0 0', fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '150px' }}>{profile?.progress || 'No notes added'}</p>
           </div>
         </div>
       </div>
@@ -151,6 +187,23 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      <ProfileModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        currentUser={currentUser}
+        profile={profile}
+        onProfileUpdated={setProfile}
+        onShowToast={showToast}
+      />
+
+      {toast.show && (
+        <Toast 
+          message={toast.message} 
+          type={toast.type} 
+          onClose={() => setToast({ ...toast, show: false })} 
+        />
+      )}
     </div>
   );
 }

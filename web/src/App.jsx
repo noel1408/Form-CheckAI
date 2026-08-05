@@ -1,10 +1,16 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import Dashboard from './pages/Dashboard';
+import Home from './pages/Home';
+import Upload from './pages/Upload';
+import Reports from './pages/Reports';
+import Profile from './pages/Profile';
+import NotFound from './pages/NotFound';
+import Layout from './components/Layout';
 import PrivateRoute from './components/PrivateRoute';
 
 function App() {
@@ -12,18 +18,27 @@ function App() {
     <Router>
       <AuthProvider>
         <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" />} />
+          {/* Public Routes */}
+          <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           
-          <Route path="/dashboard" element={
+          {/* Protected Routes with Navbar Layout */}
+          <Route element={
             <PrivateRoute>
-              <Dashboard />
+              <Layout />
             </PrivateRoute>
-          } />
+          }>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/upload" element={<Upload />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/reports/:id" element={<Reports />} />
+            <Route path="/profile" element={<Profile />} />
+          </Route>
           
-          <Route path="*" element={<Navigate to="/login" />} />
+          {/* 404 Not Found */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </AuthProvider>
     </Router>

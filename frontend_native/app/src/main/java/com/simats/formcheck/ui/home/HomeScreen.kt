@@ -24,7 +24,10 @@ data class Exercise(val id: String, val name: String, val description: String)
 
 val exercises = listOf(
     Exercise("pushup", "Push-ups", "Target your chest, shoulders, and triceps."),
-    Exercise("squat", "Squats", "Build lower body strength and core stability.")
+    Exercise("squat", "Squats", "Build lower body strength and core stability."),
+    Exercise("plank", "Plank", "Strengthen your core and improve posture."),
+    Exercise("lunge", "Lunges", "Develop leg strength and balance."),
+    Exercise("jumping_jack", "Jumping Jacks", "Full body cardio warmup.")
 )
 
 @OptIn(ExperimentalMaterial3Api::class)

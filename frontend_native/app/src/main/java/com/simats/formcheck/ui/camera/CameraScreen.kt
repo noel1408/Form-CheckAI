@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -19,7 +20,8 @@ import androidx.compose.ui.unit.sp
 import com.google.mlkit.vision.pose.Pose
 import com.google.mlkit.vision.pose.PoseLandmark
 import com.simats.formcheck.data.FormAnalyzer
-import com.simats.formcheck.data.SquatAssessment
+import com.simats.formcheck.data.ExerciseAssessment
+import com.simats.formcheck.data.SessionRepository
 import com.simats.formcheck.theme.PrimaryCyan
 import com.simats.formcheck.theme.TextPrimary
 import com.simats.formcheck.theme.TextSecondary
@@ -32,8 +34,11 @@ fun CameraScreen(
     onNavigateBack: () -> Unit
 ) {
     val analyzer = remember { FormAnalyzer() }
+    val repository = remember { SessionRepository() }
+    val scope = rememberCoroutineScope()
+    var isSaving by remember { mutableStateOf(false) }
     var detectedPose by remember { mutableStateOf<Pose?>(null) }
-    var assessment by remember { mutableStateOf<SquatAssessment?>(null) }
+    var assessment by remember { mutableStateOf<ExerciseAssessment?>(null) }
     var imageWidth by remember { mutableStateOf(1) }
     var imageHeight by remember { mutableStateOf(1) }
 
@@ -64,7 +69,14 @@ fun CameraScreen(
                     detectedPose = pose
                     imageWidth = width
                     imageHeight = height
-                    assessment = analyzer.analyzeSquat(pose)
+                    assessment = when (exerciseId) {
+                        "squat" -> analyzer.analyzeSquat(pose)
+                        "pushup" -> analyzer.analyzePushup(pose)
+                        "plank" -> analyzer.analyzePlank(pose)
+                        "lunge" -> analyzer.analyzeLunge(pose)
+                        "jumping_jack" -> analyzer.analyzeJumpingJack(pose)
+                        else -> analyzer.analyzeSquat(pose)
+                    }
                 },
                 modifier = Modifier.fillMaxSize()
             )
@@ -108,6 +120,23 @@ fun CameraScreen(
                         fontSize = 48.sp,
                         fontWeight = FontWeight.Bold
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = {
+                            assessment?.let { currentAssessment ->
+                                isSaving = true
+                                scope.launch {
+                                    val success = repository.saveSession(exerciseId, currentAssessment)
+                                    isSaving = false
+                                    onNavigateBack()
+                                }
+                            }
+                        },
+                        enabled = !isSaving && assessment != null,
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryCyan)
+                    ) {
+                        Text(if (isSaving) "Saving..." else "Finish & Save", color = Color.Black)
+                    }
                 }
             }
         }
