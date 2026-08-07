@@ -24,18 +24,16 @@ export default function ProfileModal({ isOpen, onClose, currentUser, profile, on
     e.preventDefault();
     setLoading(true);
     try {
-      // Import Firestore directly
-      const { doc, setDoc, serverTimestamp } = await import('firebase/firestore');
-      const { db } = await import('../lib/firebase');
+      const token = await currentUser.getIdToken();
+      const headers = { Authorization: `Bearer ${token}` };
+      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
       
-      const userRef = doc(db, 'users', currentUser.uid);
-      await setDoc(userRef, {
+      await axios.put(`${API_URL}/api/users/profile`, {
         name,
         fitnessGoal,
         weight,
-        progress,
-        updatedAt: serverTimestamp()
-      }, { merge: true });
+        progress
+      }, { headers });
       
       onProfileUpdated({ ...profile, name, fitnessGoal, weight, progress });
       onShowToast('Profile saved successfully!', 'success');

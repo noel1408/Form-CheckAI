@@ -17,14 +17,14 @@ class GoogleSignInHelper(private val context: Context) {
 
     suspend fun signIn(): Boolean {
         try {
-            return kotlinx.coroutines.withTimeout(15000L) {
+            return kotlinx.coroutines.withTimeout(300000L) {
                 // Using the real Web Client ID from your google-services.json
                 val webClientId = "121384975529-85s3m21da9rj2l771a24r2p6latjp640.apps.googleusercontent.com" 
 
                 val googleIdOption = GetGoogleIdOption.Builder()
                     .setFilterByAuthorizedAccounts(false)
                     .setServerClientId(webClientId)
-                    .setAutoSelectEnabled(true)
+                    .setAutoSelectEnabled(false)
                     .build()
 
                 val request = GetCredentialRequest.Builder()
