@@ -26,6 +26,10 @@ import com.simats.formcheck.theme.glassmorphism
 import com.simats.formcheck.data.api.UserProfile
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,18 +44,33 @@ fun ProfileScreen(
     var userProfile by remember { mutableStateOf<UserProfile?>(null) }
     var isEditing by remember { mutableStateOf(false) }
     
+    val context = LocalContext.current
+    val videoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            Toast.makeText(context, "Workout video attached!", Toast.LENGTH_SHORT).show()
+        }
+    }
+    
     val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
-        val sessions = repository.getSessions()
-        totalSessions = sessions.size
-        avgScore = if (sessions.isNotEmpty()) {
-            sessions.sumOf { it.score } / sessions.size
-        } else {
-            0
+        launch {
+            repository.getSessionsFlow().collect { sessions ->
+                totalSessions = sessions.size / 5
+                avgScore = if (sessions.isNotEmpty()) {
+                    sessions.sumOf { it.score } / sessions.size
+                } else {
+                    0
+                }
+            }
         }
-        
-        userProfile = repository.getProfile()
+        launch {
+            repository.getProfileFlow().collect { profile ->
+                userProfile = profile
+            }
+        }
     }
 
     Scaffold(
@@ -134,6 +153,17 @@ fun ProfileScreen(
                 ) {
                     Text("Edit Profile", color = MaterialTheme.colorScheme.background, fontWeight = FontWeight.Bold)
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                OutlinedButton(
+                    onClick = { videoPickerLauncher.launch("video/*") },
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryCyan),
+                    border = ButtonDefaults.outlinedButtonBorder.copy(brush = androidx.compose.ui.graphics.SolidColor(PrimaryCyan))
+                ) {
+                    Text("Attach Workout Video", fontWeight = FontWeight.Bold)
+                }
             }
 
             Spacer(modifier = Modifier.weight(1f))
@@ -177,6 +207,7 @@ fun EditProfileDialog(
     onSave: (UserProfile) -> Unit
 ) {
     var name by remember { mutableStateOf(currentProfile?.name ?: currentUser?.displayName ?: "") }
+    var fitnessGoal by remember { mutableStateOf(currentProfile?.fitnessGoal ?: "") }
     var weight by remember { mutableStateOf(currentProfile?.weight ?: "") }
     var progress by remember { mutableStateOf(currentProfile?.progress ?: "") }
     
@@ -189,6 +220,12 @@ fun EditProfileDialog(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text("Name") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = fitnessGoal,
+                    onValueChange = { fitnessGoal = it },
+                    label = { Text("Fitness Goal (e.g. weight_loss)") },
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
@@ -209,7 +246,7 @@ fun EditProfileDialog(
             Button(onClick = {
                 onSave(UserProfile(
                     name = name,
-                    fitnessGoal = currentProfile?.fitnessGoal,
+                    fitnessGoal = fitnessGoal,
                     weight = weight,
                     progress = progress
                 ))

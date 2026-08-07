@@ -3,7 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import { Activity, Dumbbell } from 'lucide-react';
 import ProfileModal from '../components/ProfileModal';
-
+import { db } from '../lib/firebase';
+import { doc, onSnapshot, collection, query, where } from 'firebase/firestore';
 function Profile() {
   const { currentUser } = useAuth();
   const [profile, setProfile] = useState(null);
@@ -13,27 +14,71 @@ function Profile() {
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
   useEffect(() => {
-    async function fetchData() {
-      if (!currentUser) return;
+    let unsubscribeProfile;
+    let unsubscribeSessions;
+
+    async function setupListeners() {
       try {
         const token = await currentUser.getIdToken();
         const headers = { Authorization: `Bearer ${token}` };
-        const API_URL = import.meta.env.VITE_API_URL || "https://form-checkai.onrender.com";
+        const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
         
-        const [profileRes, sessionsRes] = await Promise.all([
-          axios.get(`${API_URL}/api/users/profile`, { headers }),
-          axios.get(`${API_URL}/api/sessions`, { headers })
-        ]);
-        setProfile(profileRes.data);
-        setSessions(sessionsRes.data);
+        const profileRes = await axios.get(`${API_URL}/api/users/profile`, { headers });
+        
+        unsubscribeProfile = onSnapshot(doc(db, 'users', currentUser.uid), (docSnap) => {
+          if (docSnap.exists()) {
+            setProfile(docSnap.data());
+          }
+        }, (err) => {
+          console.error("Profile snapshot error:", err);
+          // Fallback to REST API if Firestore rules block us
+          setProfile(profileRes.data);
+          setLoading(false);
+        });
+
+        const q = query(
+          collection(db, 'sessions'),
+          where('userId', '==', currentUser.uid)
+        );
+        
+        unsubscribeSessions = onSnapshot(q, (snapshot) => {
+          const sessionsList = [];
+          snapshot.forEach(docSnap => sessionsList.push({ id: docSnap.id, ...docSnap.data() }));
+          
+          sessionsList.sort((a, b) => {
+            const timeA = a.createdAt ? (a.createdAt.toMillis ? a.createdAt.toMillis() : a.createdAt.seconds * 1000) : 0;
+            const timeB = b.createdAt ? (b.createdAt.toMillis ? b.createdAt.toMillis() : b.createdAt.seconds * 1000) : 0;
+            return timeB - timeA;
+          });
+          
+          setSessions(sessionsList);
+          setLoading(false);
+        }, async (err) => {
+          console.error("Sessions snapshot error:", err);
+          // Fallback to REST API if Firestore rules block us
+          try {
+            const sessionsRes = await axios.get(`${API_URL}/api/sessions`, { headers });
+            setSessions(sessionsRes.data);
+          } catch (restErr) {
+            console.error("REST fallback failed:", restErr);
+          }
+          setLoading(false);
+        });
+
       } catch (error) {
-        console.error("Error fetching sessions:", error);
-      } finally {
+        console.error("Error setting up real-time listeners:", error);
         setLoading(false);
       }
     }
     
-    fetchData();
+    if (currentUser) {
+      setupListeners();
+    }
+    
+    return () => {
+      if (unsubscribeProfile) unsubscribeProfile();
+      if (unsubscribeSessions) unsubscribeSessions();
+    };
   }, [currentUser]);
 
   const avgScore = sessions.length > 0 

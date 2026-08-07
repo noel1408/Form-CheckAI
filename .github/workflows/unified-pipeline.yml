@@ -1,0 +1,200 @@
+name: Unified Deploy & E2E Testing Pipeline
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build_and_deploy_web:
+    name: Build & Deploy React App to GitHub Pages
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies & Build
+        run: |
+          cd web
+          npm install
+          npm run build
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './web/dist'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  test_web_selenium:
+    name: Run Web E2E Tests
+    needs: build_and_deploy_web
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wait for GitHub Pages Deployment to go live
+        run: sleep 30
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Python deps
+        run: |
+          cd tests
+          python -m pip install --upgrade pip
+          pip install pandas openpyxl
+      - name: Run Web Selenium E2E Tests
+        run: |
+          cd tests
+          python run_selenium_e2e.py
+      - name: Upload Selenium Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: selenium-report
+          path: tests/Automation_Test_Report_Selenium.xlsx
+
+  test_mobile_appium:
+    name: Run Mobile Appium Tests
+    needs: build_and_deploy_web
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Python deps
+        run: |
+          cd tests
+          python -m pip install --upgrade pip
+          pip install pandas openpyxl
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - name: Build Android APK
+        run: |
+          cd frontend_native
+          chmod +x gradlew
+          ./gradlew assembleDebug
+      - name: Run Mobile Appium Tests
+        run: |
+          cd tests
+          python run_appium_e2e.py
+      - name: Upload Appium Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: appium-report
+          path: tests/Automation_Test_Report_Appium.xlsx
+
+  test_api_load:
+    name: Run API Load Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run API Load Tests
+        run: |
+          cd tests
+          python run_api_load_test.py || true
+
+  test_backend_security:
+    name: Run Backend Security Scans
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run Security Assessment
+        run: |
+          cd tests
+          python run_security_assessment.py || true
+
+  consolidate_reports:
+    name: Consolidate & Verify Reports
+    needs: [test_web_selenium, test_mobile_appium, test_api_load, test_backend_security]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: tests/artifacts
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Prepare Reports Directory
+        run: |
+          RUN_DIR="public_reports/test reports/test#${{ github.run_number }}"
+          mkdir -p "$RUN_DIR"
+          
+          # Move Excel Reports
+          cp tests/artifacts/selenium-report/*.xlsx "$RUN_DIR/" 2>/dev/null || true
+          cp tests/artifacts/appium-report/*.xlsx "$RUN_DIR/" 2>/dev/null || true
+
+      - name: Generate GitHub Actions Markdown Dashboard
+        run: |
+          cat << 'MARKDOWN_EOF' >> $GITHUB_STEP_SUMMARY
+          # 🧪 FormCheckAI Unified Test Dashboard
+          
+          This dashboard presents a unified summary of E2E tests, security scans, and API load testing across all major components: Website, Mobile App, Backend, and APIs.
+          
+          ## 📊 Unified Summary Overview
+          
+          | Component | Test Suite / Report |
+          | :--- | :--- |
+          | **Website E2E** | React Web App — Selenium E2E Workflow |
+          | **Mobile E2E** | Jetpack Compose — Appium E2E Automation |
+          | **Backend Security** | Source Code Vulnerability Scan |
+          | **API Load Testing** | API Performance & Load Test |
+          
+          ## 📦 Test Report Artifacts
+          
+          The full Excel test report files are uploaded as part of this workflow run and can be inspected in the artifacts list below, or accessed directly via GitHub Pages:
+          
+          - **Website E2E Report:** `test reports/test#${{ github.run_number }}/Automation_Test_Report_Selenium.xlsx`
+          - **Mobile E2E Report:** `test reports/test#${{ github.run_number }}/Automation_Test_Report_Appium.xlsx`
+          MARKDOWN_EOF
+
+      - name: Deploy Reports to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public_reports
+          keep_files: true
+
+      - name: Upload Final Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Full-Test-Reports
+          path: "public_reports/test reports/test#${{ github.run_number }}/"

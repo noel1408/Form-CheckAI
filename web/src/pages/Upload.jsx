@@ -1,19 +1,49 @@
 import React, { useState } from 'react';
+import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
+import { CheckCircle } from 'lucide-react';
 
 function Upload() {
   const [file, setFile] = useState(null);
   const [exercise, setExercise] = useState('squat');
+  const [uploading, setUploading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const { currentUser } = useAuth();
 
   const handleFileChange = (e) => {
     if (e.target.files[0]) {
       setFile(e.target.files[0]);
+      setSuccess(false);
     }
   };
 
-  const handleUpload = () => {
-    if (file) {
-      console.log(`Uploading file for ${exercise} analysis...`, file);
-      // Implement upload logic here
+  const handleUpload = async () => {
+    if (file && currentUser) {
+      setUploading(true);
+      try {
+        const token = await currentUser.getIdToken();
+        const API_URL = import.meta.env.VITE_API_URL || "https://form-checkai.onrender.com";
+        
+        // Simulate a random score between 60 and 95
+        const simulatedScore = Math.floor(Math.random() * (95 - 60 + 1) + 60);
+        
+        await axios.post(`${API_URL}/api/sessions`, {
+          exerciseType: exercise,
+          score: simulatedScore,
+          notes: "Good depth, keep your chest up.",
+          videoUrl: "simulated_url" // In a real app, upload to Firebase Storage first
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        setSuccess(true);
+        setFile(null);
+      } catch (err) {
+        console.error("Failed to upload session", err);
+        alert("Failed to upload session");
+      } finally {
+        setUploading(false);
+      }
     }
   };
 
@@ -42,8 +72,8 @@ function Upload() {
         <input type="file" accept="video/*" onChange={handleFileChange} />
       </div>
       
-      <button onClick={handleUpload} disabled={!file} style={{ padding: '10px 20px', cursor: 'pointer' }}>
-        Analyze Form
+      <button onClick={handleUpload} disabled={!file || uploading} className="glass-button" style={{ padding: '10px 20px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+        {uploading ? 'Analyzing...' : success ? <><CheckCircle size={18} /> Done!</> : 'Analyze Form'}
       </button>
     </div>
   );

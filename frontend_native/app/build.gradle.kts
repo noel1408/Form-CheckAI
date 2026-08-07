@@ -7,11 +7,11 @@ plugins {
 
 android {
     namespace = "com.simats.formcheck"
-    compileSdk = 36
+    compileSdk = 37
     defaultConfig {
         applicationId = "com.simats.formcheck"
         minSdk = 24
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 1
         versionName = "1.0"
     }
@@ -107,8 +107,9 @@ dependencies {
   implementation(libs.room.runtime)
   implementation(libs.room.ktx)
 
-  // Firebase Auth
+  // Firebase Auth & Firestore
   implementation(platform(libs.firebase.bom))
-  implementation(libs.firebase.auth)
+  implementation("com.google.firebase:firebase-auth")
   implementation(libs.google.play.services.auth)
+  implementation("com.google.firebase:firebase-firestore")
 }

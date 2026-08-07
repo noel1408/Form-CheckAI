@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { LogOut, User, Activity, Dumbbell, TrendingUp, Edit2 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { db } from '../lib/firebase';
+import { doc, onSnapshot, collection, query, where } from 'firebase/firestore';
 import Toast from '../components/Toast';
 import ProfileModal from '../components/ProfileModal';
 
@@ -19,29 +21,80 @@ export default function Dashboard() {
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
   useEffect(() => {
-    async function fetchData() {
+    let unsubscribeProfile;
+    let unsubscribeSessions;
+
+    async function setupListeners() {
       try {
         const token = await currentUser.getIdToken();
         const headers = { Authorization: `Bearer ${token}` };
-        const API_URL = import.meta.env.VITE_API_URL || "https://form-checkai.onrender.com";
+        const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
         
-        const [profileRes, sessionsRes] = await Promise.all([
-          axios.get(`${API_URL}/api/users/profile`, { headers }),
-          axios.get(`${API_URL}/api/sessions`, { headers })
-        ]);
+        const profileRes = await axios.get(`${API_URL}/api/users/profile`, { headers });
+        
+        unsubscribeProfile = onSnapshot(doc(db, 'users', currentUser.uid), (docSnap) => {
+          if (docSnap.exists()) {
+            setProfile(docSnap.data());
+          }
+        }, (err) => {
+          console.error("Profile snapshot error:", err);
+          // Fallback to REST API if Firestore rules block us
+          setProfile(profileRes.data);
+          setLoading(false);
+        });
 
-        setProfile(profileRes.data);
-        setSessions(sessionsRes.data);
+        const q = query(
+          collection(db, 'sessions'),
+          where('userId', '==', currentUser.uid)
+        );
+        
+        unsubscribeSessions = onSnapshot(q, (snapshot) => {
+          const sessionsList = [];
+          snapshot.forEach(docSnap => sessionsList.push({ id: docSnap.id, ...docSnap.data() }));
+          
+          sessionsList.sort((a, b) => {
+            const timeA = a.createdAt ? (a.createdAt.toMillis ? a.createdAt.toMillis() : a.createdAt.seconds * 1000) : 0;
+            const timeB = b.createdAt ? (b.createdAt.toMillis ? b.createdAt.toMillis() : b.createdAt.seconds * 1000) : 0;
+            return timeB - timeA;
+          });
+          
+          setSessions(sessionsList);
+          setLoading(false);
+        }, (err) => {
+          console.error("Sessions snapshot error, falling back to REST polling:", err);
+          
+          const fetchSessions = async () => {
+            try {
+              const sessionsRes = await axios.get(`${API_URL}/api/sessions`, { headers });
+              setSessions(sessionsRes.data);
+            } catch (restErr) {
+              console.error("REST fallback failed:", restErr);
+            }
+            setLoading(false);
+          };
+          
+          fetchSessions();
+          // Poll every 5 seconds since Firebase real-time is blocked
+          const pollInterval = setInterval(fetchSessions, 5000);
+          
+          // Override unsubscribe to clear the interval
+          unsubscribeSessions = () => clearInterval(pollInterval);
+        });
+
       } catch (error) {
-        console.error("Error fetching dashboard data:", error);
-      } finally {
+        console.error("Error setting up real-time listeners:", error);
         setLoading(false);
       }
     }
     
     if (currentUser) {
-      fetchData();
+      setupListeners();
     }
+    
+    return () => {
+      if (unsubscribeProfile) unsubscribeProfile();
+      if (unsubscribeSessions) unsubscribeSessions();
+    };
   }, [currentUser]);
 
   async function handleLogout() {
@@ -57,14 +110,35 @@ export default function Dashboard() {
     setToast({ show: true, message, type });
   }
 
-  // Real data for the chart
-  const chartData = sessions.map((s, i) => ({
-    name: `Session ${i+1}`,
-    score: s.score || 0,
-  }));
+  const totalExercises = sessions.length;
+  const completedSessions = Math.floor(totalExercises / 5);
+  const exercisesTowardsNext = totalExercises % 5;
+  const nextSessionProgressPercent = (exercisesTowardsNext / 5) * 100;
 
-  const avgScore = sessions.length > 0 
-    ? Math.round(sessions.reduce((acc, s) => acc + (s.score || 0), 0) / sessions.length) 
+  // Chart data: Group every 5 exercises into one Session
+  // Sessions are fetched newest first, so we reverse them to plot oldest to newest
+  const chartSessions = [...sessions].reverse();
+  const groupedChartData = [];
+  
+  for (let i = 0; i < chartSessions.length; i += 5) {
+    const chunk = chartSessions.slice(i, i + 5);
+    if (chunk.length === 5) {
+       const avg = chunk.reduce((acc, s) => acc + (s.score || 0), 0) / 5;
+       const avgReps = chunk.reduce((acc, s) => acc + (s.reps || 0), 0) / 5;
+       groupedChartData.push({
+         name: `Session ${groupedChartData.length + 1}`,
+         score: Math.round(avg),
+         reps: Math.round(avgReps)
+       });
+    }
+  }
+
+  const avgScore = totalExercises > 0 
+    ? Math.round(sessions.reduce((acc, s) => acc + (s.score || 0), 0) / totalExercises) 
+    : 0;
+
+  const avgTotalReps = totalExercises > 0
+    ? Math.round(sessions.reduce((acc, s) => acc + (s.reps || 0), 0) / totalExercises)
     : 0;
 
   if (loading) {
@@ -105,9 +179,19 @@ export default function Dashboard() {
           <div style={{ background: 'var(--primary-cyan-dim)', padding: '16px', borderRadius: '12px' }}>
             <Activity size={32} color="var(--primary-cyan)" />
           </div>
-          <div>
-            <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '14px' }}>Total Sessions</p>
-            <h2 style={{ margin: '4px 0 0 0', fontSize: '28px' }}>{sessions.length}</h2>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+              <div>
+                <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '14px' }}>Completed Sessions</p>
+                <h2 style={{ margin: '4px 0 0 0', fontSize: '28px' }}>{completedSessions}</h2>
+              </div>
+              <span style={{ color: 'var(--primary-cyan)', fontSize: '14px', fontWeight: 'bold' }}>
+                {exercisesTowardsNext} / 5
+              </span>
+            </div>
+            <div style={{ width: '100%', height: '6px', background: 'var(--border-glass)', borderRadius: '3px', marginTop: '12px', overflow: 'hidden' }}>
+              <div style={{ width: `${nextSessionProgressPercent}%`, height: '100%', background: 'var(--primary-cyan)', borderRadius: '3px', transition: 'width 0.3s ease' }}></div>
+            </div>
           </div>
         </div>
 
@@ -118,6 +202,16 @@ export default function Dashboard() {
           <div>
             <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '14px' }}>Avg Form Score</p>
             <h2 style={{ margin: '4px 0 0 0', fontSize: '28px' }}>{sessions.length > 0 ? `${avgScore}%` : 'N/A'}</h2>
+          </div>
+        </div>
+
+        <div className="glass-panel" style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ background: 'var(--primary-cyan-dim)', padding: '16px', borderRadius: '12px' }}>
+            <Activity size={32} color="var(--primary-cyan)" />
+          </div>
+          <div>
+            <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '14px' }}>Avg Reps / Exercise</p>
+            <h2 style={{ margin: '4px 0 0 0', fontSize: '28px' }}>{sessions.length > 0 ? avgTotalReps : 'N/A'}</h2>
           </div>
         </div>
 
@@ -159,10 +253,10 @@ export default function Dashboard() {
           <h3 style={{ margin: 0, fontSize: '20px' }}>Performance Trend (Form Score)</h3>
         </div>
         
-        {sessions.length > 0 ? (
+        {groupedChartData.length > 0 ? (
           <div style={{ height: '400px', width: '100%' }}>
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+              <AreaChart data={groupedChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="var(--primary-cyan)" stopOpacity={0.8}/>
@@ -183,7 +277,7 @@ export default function Dashboard() {
         ) : (
           <div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '16px' }}>
             <Activity size={48} color="var(--text-secondary)" opacity={0.5} />
-            <p style={{ color: 'var(--text-secondary)', margin: 0 }}>No sessions recorded yet. Start training in the mobile app to see your progress!</p>
+            <p style={{ color: 'var(--text-secondary)', margin: 0 }}>No full sessions recorded yet. Complete 5 exercises to see your progress!</p>
           </div>
         )}
       </div>

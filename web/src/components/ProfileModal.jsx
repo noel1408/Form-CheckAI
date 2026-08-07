@@ -25,9 +25,9 @@ export default function ProfileModal({ isOpen, onClose, currentUser, profile, on
     setLoading(true);
     try {
       const token = await currentUser.getIdToken();
-      const API_URL = import.meta.env.VITE_API_URL || "https://form-checkai.onrender.com";
+      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
       
-      const response = await axios.put(`${API_URL}/api/users/profile`, { name, fitnessGoal, weight, progress }, {
+      await axios.put(`${API_URL}/api/users/profile`, { name, fitnessGoal, weight, progress }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       

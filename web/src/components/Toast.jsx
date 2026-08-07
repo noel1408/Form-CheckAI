@@ -18,7 +18,7 @@ export default function Toast({ message, type = 'success', onClose }) {
       position: 'fixed',
       bottom: '24px',
       right: '24px',
-      background: 'var(--bg-dark)',
+      background: bgColor,
       border: `1px solid ${borderColor}`,
       borderRadius: '8px',
       padding: '16px 20px',

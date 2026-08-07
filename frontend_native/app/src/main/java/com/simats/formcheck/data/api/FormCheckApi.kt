@@ -11,7 +11,8 @@ data class SessionPayload(
     val exercise: String,
     val score: Int,
     val feedback: String,
-    val issues: List<String>
+    val issues: List<String>,
+    val reps: Int = 0
 )
 
 data class SessionResponse(
@@ -19,7 +20,8 @@ data class SessionResponse(
     val exercise: String?,
     val score: Int,
     val feedback: String?,
-    val issues: List<String>?
+    val issues: List<String>?,
+    val reps: Int? = 0
 )
 
 data class UserProfile(
@@ -34,12 +36,19 @@ interface FormCheckApi {
     suspend fun saveSession(
         @Header("Authorization") token: String,
         @Body payload: SessionPayload
-    ): Response<Unit>
+    ): Response<SessionResponse>
 
     @GET("/api/sessions")
     suspend fun getSessions(
         @Header("Authorization") token: String
     ): Response<List<SessionResponse>>
+
+    @PUT("/api/sessions/{id}")
+    suspend fun updateSession(
+        @Header("Authorization") token: String,
+        @retrofit2.http.Path("id") id: String,
+        @Body payload: SessionPayload
+    ): Response<Unit>
 
     @GET("/api/users/profile")
     suspend fun getProfile(

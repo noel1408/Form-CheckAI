@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.activity.compose.BackHandler
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,13 +42,47 @@ fun CameraScreen(
     var assessment by remember { mutableStateOf<ExerciseAssessment?>(null) }
     var imageWidth by remember { mutableStateOf(1) }
     var imageHeight by remember { mutableStateOf(1) }
+    var sessionId by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(Unit) {
+        val initialAssessment = ExerciseAssessment(
+            score = 0,
+            feedback = "Started",
+            issues = emptyList(),
+            reps = 0
+        )
+        sessionId = repository.saveSession(exerciseId, initialAssessment)
+    }
+
+    var plankTimerDuration by remember { mutableStateOf(0L) }
+    var plankTimerRemaining by remember { mutableStateOf(0L) }
+    var isPlankTimerRunning by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isPlankTimerRunning) {
+        if (isPlankTimerRunning) {
+            while (plankTimerRemaining > 0) {
+                kotlinx.coroutines.delay(1000L)
+                plankTimerRemaining -= 1000L
+            }
+            isPlankTimerRunning = false
+        }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Live Form Check", color = PrimaryCyan, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = {
+                        scope.launch {
+                            assessment?.let { currentAssessment ->
+                                sessionId?.let { id ->
+                                    repository.updateSession(id, exerciseId, currentAssessment)
+                                }
+                            }
+                            onNavigateBack()
+                        }
+                    }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = PrimaryCyan)
                     }
                 },
@@ -58,6 +93,16 @@ fun CameraScreen(
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
+        BackHandler {
+            scope.launch {
+                assessment?.let { currentAssessment ->
+                    sessionId?.let { id ->
+                        repository.updateSession(id, exerciseId, currentAssessment)
+                    }
+                }
+                onNavigateBack()
+            }
+        }
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -113,27 +158,74 @@ fun CameraScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(text = "Form Score", color = TextSecondary, fontSize = 14.sp)
-                    Text(
-                        text = assessment?.score?.toString() ?: "0",
-                        color = PrimaryCyan,
-                        fontSize = 48.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            if (exerciseId == "plank") {
+                                if (plankTimerDuration == 0L) {
+                                    Text(text = "Select Timer", color = TextSecondary, fontSize = 14.sp)
+                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        Button(onClick = { plankTimerDuration = 60000L; plankTimerRemaining = 60000L; isPlankTimerRunning = true }, contentPadding = PaddingValues(4.dp)) { Text("1m", fontSize = 12.sp) }
+                                        Button(onClick = { plankTimerDuration = 120000L; plankTimerRemaining = 120000L; isPlankTimerRunning = true }, contentPadding = PaddingValues(4.dp)) { Text("2m", fontSize = 12.sp) }
+                                        Button(onClick = { plankTimerDuration = 300000L; plankTimerRemaining = 300000L; isPlankTimerRunning = true }, contentPadding = PaddingValues(4.dp)) { Text("5m", fontSize = 12.sp) }
+                                    }
+                                } else {
+                                    Text(text = "Timer", color = TextSecondary, fontSize = 14.sp)
+                                    val minutes = (plankTimerRemaining / 1000) / 60
+                                    val seconds = (plankTimerRemaining / 1000) % 60
+                                    Text(
+                                        text = String.format("%02d:%02d", minutes, seconds),
+                                        color = if (plankTimerRemaining == 0L) Color.Green else PrimaryCyan,
+                                        fontSize = 36.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            } else {
+                                Text(text = "Reps", color = TextSecondary, fontSize = 14.sp)
+                                Text(
+                                    text = "${assessment?.reps ?: 0} / 13",
+                                    color = if ((assessment?.reps ?: 0) >= 13) Color.Green else PrimaryCyan,
+                                    fontSize = 36.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(text = "Form Score", color = TextSecondary, fontSize = 14.sp)
+                            Text(
+                                text = assessment?.score?.toString() ?: "0",
+                                color = PrimaryCyan,
+                                fontSize = 36.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
                     Spacer(modifier = Modifier.height(8.dp))
                     Button(
                         onClick = {
                             assessment?.let { currentAssessment ->
                                 isSaving = true
                                 scope.launch {
-                                    val success = repository.saveSession(exerciseId, currentAssessment)
+                                    sessionId?.let { id ->
+                                        repository.updateSession(id, exerciseId, currentAssessment)
+                                    } ?: run {
+                                        repository.saveSession(exerciseId, currentAssessment)
+                                    }
                                     isSaving = false
                                     onNavigateBack()
                                 }
                             }
                         },
                         enabled = !isSaving && assessment != null,
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryCyan)
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (exerciseId == "plank") {
+                                if (plankTimerDuration > 0 && plankTimerRemaining == 0L) Color.Green else PrimaryCyan
+                            } else {
+                                if ((assessment?.reps ?: 0) >= 13) Color.Green else PrimaryCyan
+                            }
+                        )
                     ) {
                         Text(if (isSaving) "Saving..." else "Finish & Save", color = Color.Black)
                     }

@@ -59,12 +59,18 @@ app.get('/api/sessions', verifyToken, async (req, res) => {
     const userId = req.user.uid;
     const snapshot = await db.collection('sessions')
                              .where('userId', '==', userId)
-                             .orderBy('createdAt', 'desc')
                              .get();
     
     const sessions = [];
     snapshot.forEach(doc => {
       sessions.push({ id: doc.id, ...doc.data() });
+    });
+    
+    // Sort manually in memory to avoid Firestore index requirement
+    sessions.sort((a, b) => {
+      const timeA = a.createdAt ? a.createdAt.toMillis() : 0;
+      const timeB = b.createdAt ? b.createdAt.toMillis() : 0;
+      return timeB - timeA;
     });
     
     res.json(sessions);
@@ -88,6 +94,28 @@ app.post('/api/sessions', verifyToken, async (req, res) => {
     res.status(201).json({ id: docRef.id, ...sessionData });
   } catch (error) {
     console.error('Error adding session:', error);
+    res.status(500).send('Internal Server Error');
+  }
+});
+
+// Update an existing session
+app.put('/api/sessions/:id', verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.uid;
+    const sessionId = req.params.id;
+    const docRef = db.collection('sessions').doc(sessionId);
+    
+    // Ensure the session belongs to the user
+    const docSnap = await docRef.get();
+    if (!docSnap.exists || docSnap.data().userId !== userId) {
+      return res.status(403).send('Forbidden or Not Found');
+    }
+
+    const updates = req.body;
+    await docRef.set(updates, { merge: true });
+    res.status(200).json({ success: true });
+  } catch (error) {
+    console.error('Error updating session:', error);
     res.status(500).send('Internal Server Error');
   }
 });

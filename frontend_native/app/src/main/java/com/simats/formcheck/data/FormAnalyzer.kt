@@ -8,10 +8,27 @@ import kotlin.math.atan2
 data class ExerciseAssessment(
     val score: Int,
     val issues: List<String>,
-    val feedback: String
+    val feedback: String,
+    val reps: Int = 0
 )
 
 class FormAnalyzer {
+    // State Tracking
+    private var squatState = "UP"
+    private var squatReps = 0
+    private var squatLowestScore = 100
+
+    private var pushupState = "UP"
+    private var pushupReps = 0
+    private var pushupLowestScore = 100
+
+    private var lungeState = "UP"
+    private var lungeReps = 0
+    private var lungeLowestScore = 100
+
+    private var jjState = "CLOSED"
+    private var jjReps = 0
+    private var jjLowestScore = 100
 
     fun analyzeSquat(pose: Pose): ExerciseAssessment {
         val landmarks = pose.allPoseLandmarks
@@ -55,13 +72,32 @@ class FormAnalyzer {
             issues.add("Balance both legs")
         }
 
-        var score = 100
-        score -= issues.size * 20
-        score = score.coerceIn(0, 100)
+        var currentScore = 100
+        currentScore -= issues.size * 20
+        currentScore = currentScore.coerceIn(0, 100)
+
+        // State Machine for Rep Counting
+        if (avgKneeAngle < 115) {
+            if (squatState == "UP") {
+                squatState = "DOWN"
+                squatLowestScore = 100 // Reset for new rep
+            }
+            if (currentScore < squatLowestScore) {
+                squatLowestScore = currentScore
+            }
+        } else if (avgKneeAngle > 150) {
+            if (squatState == "DOWN") {
+                squatState = "UP"
+                if (squatLowestScore == 100) {
+                    squatReps++
+                }
+            }
+        }
 
         val feedback = if (issues.isEmpty()) "Good squat form" else issues[0]
 
-        return ExerciseAssessment(score, issues, feedback)
+        val reportedScore = if (squatState == "DOWN") squatLowestScore else currentScore
+        return ExerciseAssessment(reportedScore, issues, feedback, squatReps)
     }
 
     fun analyzePushup(pose: Pose): ExerciseAssessment {
@@ -85,10 +121,29 @@ class FormAnalyzer {
         if (bodyAngle < 160) issues.add("Keep your back straight")
         if (elbowAngle > 90 && elbowAngle < 150) issues.add("Go lower")
 
-        var score = 100 - (issues.size * 20)
-        score = score.coerceIn(0, 100)
+        var currentScore = 100 - (issues.size * 20)
+        currentScore = currentScore.coerceIn(0, 100)
         
-        return ExerciseAssessment(score, issues, if (issues.isEmpty()) "Good push-up form" else issues[0])
+        // State Machine for Rep Counting
+        if (elbowAngle < 90) { // Going down
+            if (pushupState == "UP") {
+                pushupState = "DOWN"
+                pushupLowestScore = 100
+            }
+            if (currentScore < pushupLowestScore) {
+                pushupLowestScore = currentScore
+            }
+        } else if (elbowAngle > 150) { // Coming up
+            if (pushupState == "DOWN") {
+                pushupState = "UP"
+                if (pushupLowestScore == 100) {
+                    pushupReps++
+                }
+            }
+        }
+
+        val reportedScore = if (pushupState == "DOWN") pushupLowestScore else currentScore
+        return ExerciseAssessment(reportedScore, issues, if (issues.isEmpty()) "Good push-up form" else issues[0], pushupReps)
     }
 
     fun analyzePlank(pose: Pose): ExerciseAssessment {
@@ -131,9 +186,29 @@ class FormAnalyzer {
 
         if (kneeAngle > 110) issues.add("Drop your back knee lower")
 
-        var score = 100 - (issues.size * 20)
-        score = score.coerceIn(0, 100)
-        return ExerciseAssessment(score, issues, if (issues.isEmpty()) "Good lunge form" else issues[0])
+        var currentScore = 100 - (issues.size * 20)
+        currentScore = currentScore.coerceIn(0, 100)
+
+        // State Machine for Rep Counting
+        if (kneeAngle < 100) {
+            if (lungeState == "UP") {
+                lungeState = "DOWN"
+                lungeLowestScore = 100
+            }
+            if (currentScore < lungeLowestScore) {
+                lungeLowestScore = currentScore
+            }
+        } else if (kneeAngle > 150) {
+            if (lungeState == "DOWN") {
+                lungeState = "UP"
+                if (lungeLowestScore == 100) {
+                    lungeReps++
+                }
+            }
+        }
+
+        val reportedScore = if (lungeState == "DOWN") lungeLowestScore else currentScore
+        return ExerciseAssessment(reportedScore, issues, if (issues.isEmpty()) "Good lunge form" else issues[0], lungeReps)
     }
 
     fun analyzeJumpingJack(pose: Pose): ExerciseAssessment {
@@ -156,9 +231,29 @@ class FormAnalyzer {
         val issues = mutableListOf<String>()
         if (feetDistance < 50 && handsDistance > 100) issues.add("Coordinate arms and legs")
 
-        var score = 100 - (issues.size * 20)
-        score = score.coerceIn(0, 100)
-        return ExerciseAssessment(score, issues, if (issues.isEmpty()) "Good jumping jack form" else issues[0])
+        var currentScore = 100 - (issues.size * 20)
+        currentScore = currentScore.coerceIn(0, 100)
+
+        // State Machine for Rep Counting
+        if (handsDistance > 150 && feetDistance > 100) {
+            if (jjState == "CLOSED") {
+                jjState = "OPEN"
+                jjLowestScore = 100
+            }
+            if (currentScore < jjLowestScore) {
+                jjLowestScore = currentScore
+            }
+        } else if (handsDistance < 100 && feetDistance < 50) {
+            if (jjState == "OPEN") {
+                jjState = "CLOSED"
+                if (jjLowestScore == 100) {
+                    jjReps++
+                }
+            }
+        }
+
+        val reportedScore = if (jjState == "OPEN") jjLowestScore else currentScore
+        return ExerciseAssessment(reportedScore, issues, if (issues.isEmpty()) "Good jumping jack form" else issues[0], jjReps)
     }
 
     private fun calculateAngle(firstPoint: PoseLandmark, midPoint: PoseLandmark, lastPoint: PoseLandmark): Float {
