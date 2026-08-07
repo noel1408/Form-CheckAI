@@ -26,20 +26,12 @@ export default function Dashboard() {
 
     async function setupListeners() {
       try {
-        const token = await currentUser.getIdToken();
-        const headers = { Authorization: `Bearer ${token}` };
-        const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
-        
-        const profileRes = await axios.get(`${API_URL}/api/users/profile`, { headers });
-        
         unsubscribeProfile = onSnapshot(doc(db, 'users', currentUser.uid), (docSnap) => {
           if (docSnap.exists()) {
             setProfile(docSnap.data());
           }
         }, (err) => {
           console.error("Profile snapshot error:", err);
-          // Fallback to REST API if Firestore rules block us
-          setProfile(profileRes.data);
           setLoading(false);
         });
 
@@ -61,24 +53,8 @@ export default function Dashboard() {
           setSessions(sessionsList);
           setLoading(false);
         }, (err) => {
-          console.error("Sessions snapshot error, falling back to REST polling:", err);
-          
-          const fetchSessions = async () => {
-            try {
-              const sessionsRes = await axios.get(`${API_URL}/api/sessions`, { headers });
-              setSessions(sessionsRes.data);
-            } catch (restErr) {
-              console.error("REST fallback failed:", restErr);
-            }
-            setLoading(false);
-          };
-          
-          fetchSessions();
-          // Poll every 5 seconds since Firebase real-time is blocked
-          const pollInterval = setInterval(fetchSessions, 5000);
-          
-          // Override unsubscribe to clear the interval
-          unsubscribeSessions = () => clearInterval(pollInterval);
+          console.error("Sessions snapshot error:", err);
+          setLoading(false);
         });
 
       } catch (error) {
