@@ -79,7 +79,7 @@ jobs:
         if: always()
         with:
           name: selenium-report
-          path: tests/Automation_Test_Report_Selenium.xlsx
+          path: "tests/Test Results/Excel/Automation_Test_Report_Selenium.xlsx"
 
   test_mobile_appium:
     name: Run Mobile Appium Tests
@@ -115,7 +115,7 @@ jobs:
         if: always()
         with:
           name: appium-report
-          path: tests/Automation_Test_Report_Appium.xlsx
+          path: "tests/Test Results/Excel/Automation_Test_Report_Appium.xlsx"
 
   test_api_load:
     name: Run API Load Tests
