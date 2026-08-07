@@ -24,19 +24,25 @@ export default function ProfileModal({ isOpen, onClose, currentUser, profile, on
     e.preventDefault();
     setLoading(true);
     try {
-      const token = await currentUser.getIdToken();
-      const API_URL = import.meta.env.VITE_API_URL || "https://form-checkai.onrender.com";
+      // Import Firestore directly
+      const { doc, setDoc, serverTimestamp } = await import('firebase/firestore');
+      const { db } = await import('../lib/firebase');
       
-      await axios.put(`${API_URL}/api/users/profile`, { name, fitnessGoal, weight, progress }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const userRef = doc(db, 'users', currentUser.uid);
+      await setDoc(userRef, {
+        name,
+        fitnessGoal,
+        weight,
+        progress,
+        updatedAt: serverTimestamp()
+      }, { merge: true });
       
       onProfileUpdated({ ...profile, name, fitnessGoal, weight, progress });
       onShowToast('Profile saved successfully!', 'success');
       onClose();
     } catch (err) {
       console.error(err);
-      onShowToast('Failed to save profile', 'error');
+      onShowToast('Failed to save profile: ' + err.message, 'error');
     } finally {
       setLoading(false);
     }
