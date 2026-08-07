@@ -102,29 +102,28 @@ fun AuthScreen(
                 Button(
                     onClick = {
                         if (email.isNotBlank() && password.isNotBlank()) {
-                            isLoading = true
-                            resetMessage = ""
-                            com.google.firebase.auth.FirebaseAuth.getInstance()
-                                .signInWithEmailAndPassword(email, password)
-                                .addOnCompleteListener { task ->
-                                    if (task.isSuccessful) {
-                                        isLoading = false
+                            scope.launch {
+                                isLoading = true
+                                resetMessage = ""
+                                try {
+                                    val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+                                    try {
+                                        kotlinx.coroutines.tasks.await(auth.signInWithEmailAndPassword(email, password))
                                         onNavigateToHome()
-                                    } else {
-                                        // Auto-register if account doesn't exist
-                                        com.google.firebase.auth.FirebaseAuth.getInstance()
-                                            .createUserWithEmailAndPassword(email, password)
-                                            .addOnCompleteListener { regTask ->
-                                                isLoading = false
-                                                if (regTask.isSuccessful) {
-                                                    onNavigateToHome()
-                                                } else {
-                                                    resetMessage = task.exception?.message ?: "Authentication failed."
-                                                    resetError = true
-                                                }
-                                            }
+                                    } catch (e: Exception) {
+                                        // Login failed, try to register
+                                        try {
+                                            kotlinx.coroutines.tasks.await(auth.createUserWithEmailAndPassword(email, password))
+                                            onNavigateToHome()
+                                        } catch (regEx: Exception) {
+                                            resetMessage = e.message ?: "Authentication failed."
+                                            resetError = true
+                                        }
                                     }
+                                } finally {
+                                    isLoading = false
                                 }
+                            }
                         } else {
                             resetMessage = "Please enter email and password."
                             resetError = true
