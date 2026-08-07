@@ -100,13 +100,42 @@ fun AuthScreen(
                 CircularProgressIndicator(color = PrimaryCyan)
             } else {
                 Button(
-                    onClick = onNavigateToHome,
+                    onClick = {
+                        if (email.isNotBlank() && password.isNotBlank()) {
+                            isLoading = true
+                            resetMessage = ""
+                            com.google.firebase.auth.FirebaseAuth.getInstance()
+                                .signInWithEmailAndPassword(email, password)
+                                .addOnCompleteListener { task ->
+                                    if (task.isSuccessful) {
+                                        isLoading = false
+                                        onNavigateToHome()
+                                    } else {
+                                        // Auto-register if account doesn't exist
+                                        com.google.firebase.auth.FirebaseAuth.getInstance()
+                                            .createUserWithEmailAndPassword(email, password)
+                                            .addOnCompleteListener { regTask ->
+                                                isLoading = false
+                                                if (regTask.isSuccessful) {
+                                                    onNavigateToHome()
+                                                } else {
+                                                    resetMessage = task.exception?.message ?: "Authentication failed."
+                                                    resetError = true
+                                                }
+                                            }
+                                    }
+                                }
+                        } else {
+                            resetMessage = "Please enter email and password."
+                            resetError = true
+                        }
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryCyan)
                 ) {
-                    Text("Sign In", color = MaterialTheme.colorScheme.background, fontWeight = FontWeight.Bold)
+                    Text("Sign In / Register", color = MaterialTheme.colorScheme.background, fontWeight = FontWeight.Bold)
                 }
 
                 OutlinedButton(
