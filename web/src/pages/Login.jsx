@@ -33,7 +33,7 @@ export default function Login() {
       await loginWithGoogle();
       navigate('/dashboard');
     } catch (err) {
-      setError('Failed to sign in with Google.');
+      setError(`Failed to sign in with Google: ${err.message}`);
       console.error(err);
     } finally {
       setLoading(false);
