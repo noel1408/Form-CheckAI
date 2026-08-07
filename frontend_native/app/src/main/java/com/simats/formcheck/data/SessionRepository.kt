@@ -45,7 +45,7 @@ class SessionRepository {
                 "createdAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
             )
             
-            val docRef = kotlinx.coroutines.tasks.await(db.collection("sessions").add(sessionData))
+            val docRef = db.collection("sessions").add(sessionData).await()
             docRef.id
         } catch (e: Exception) {
             e.printStackTrace()
@@ -66,7 +66,7 @@ class SessionRepository {
                 "reps" to assessment.reps
             )
             
-            kotlinx.coroutines.tasks.await(db.collection("sessions").document(sessionId).update(payload))
+            db.collection("sessions").document(sessionId).update(payload).await()
             true
         } catch (e: Exception) {
             e.printStackTrace()
