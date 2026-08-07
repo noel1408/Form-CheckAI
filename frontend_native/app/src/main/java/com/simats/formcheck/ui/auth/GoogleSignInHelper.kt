@@ -17,30 +17,36 @@ class GoogleSignInHelper(private val context: Context) {
 
     suspend fun signIn(): Boolean {
         try {
-            // Using the real Web Client ID from your google-services.json
-            val webClientId = "121384975529-85s3m21da9rj2l771a24r2p6latjp640.apps.googleusercontent.com" 
+            return kotlinx.coroutines.withTimeout(15000L) {
+                // Using the real Web Client ID from your google-services.json
+                val webClientId = "121384975529-85s3m21da9rj2l771a24r2p6latjp640.apps.googleusercontent.com" 
 
-            val googleIdOption = GetGoogleIdOption.Builder()
-                .setFilterByAuthorizedAccounts(false)
-                .setServerClientId(webClientId)
-                .setAutoSelectEnabled(true)
-                .build()
+                val googleIdOption = GetGoogleIdOption.Builder()
+                    .setFilterByAuthorizedAccounts(false)
+                    .setServerClientId(webClientId)
+                    .setAutoSelectEnabled(true)
+                    .build()
 
-            val request = GetCredentialRequest.Builder()
-                .addCredentialOption(googleIdOption)
-                .build()
+                val request = GetCredentialRequest.Builder()
+                    .addCredentialOption(googleIdOption)
+                    .build()
 
-            val result = credentialManager.getCredential(context, request)
-            val credential = result.credential
+                val result = credentialManager.getCredential(context, request)
+                val credential = result.credential
 
-            if (credential is androidx.credentials.CustomCredential &&
-                credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
-                
-                val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
-                val firebaseCredential = GoogleAuthProvider.getCredential(googleIdTokenCredential.idToken, null)
-                firebaseAuth.signInWithCredential(firebaseCredential).await()
-                return true
+                if (credential is androidx.credentials.CustomCredential &&
+                    credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+                    
+                    val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
+                    val firebaseCredential = GoogleAuthProvider.getCredential(googleIdTokenCredential.idToken, null)
+                    firebaseAuth.signInWithCredential(firebaseCredential).await()
+                    true
+                } else {
+                    false
+                }
             }
+        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+            Log.e("GoogleSignIn", "Sign in timed out", e)
         } catch (e: Exception) {
             Log.e("GoogleSignIn", "Sign in failed", e)
         }

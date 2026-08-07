@@ -142,10 +142,20 @@ fun AuthScreen(
                     onClick = {
                         scope.launch {
                             isLoading = true
-                            if (signInHelper.signIn()) {
-                                onNavigateToHome()
+                            resetMessage = ""
+                            try {
+                                if (signInHelper.signIn()) {
+                                    onNavigateToHome()
+                                } else {
+                                    resetMessage = "Google Sign-In failed or was cancelled."
+                                    resetError = true
+                                }
+                            } catch (e: Exception) {
+                                resetMessage = e.message ?: "An unexpected error occurred."
+                                resetError = true
+                            } finally {
+                                isLoading = false
                             }
-                            isLoading = false
                         }
                     },
                     modifier = Modifier
