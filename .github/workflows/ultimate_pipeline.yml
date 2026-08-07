@@ -72,7 +72,7 @@ jobs:
       - name: Run Emulator & Tests
         uses: reactivecircus/android-emulator-runner@v2
         env:
-          APK_PATH: ../app-build/app-debug.apk
+          APK_PATH: ${{ github.workspace }}/app-build/app-debug.apk
         with:
           api-level: 30
           target: default
