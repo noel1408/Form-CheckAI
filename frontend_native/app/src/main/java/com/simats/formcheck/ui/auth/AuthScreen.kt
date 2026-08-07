@@ -108,12 +108,12 @@ fun AuthScreen(
                                 try {
                                     val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
                                     try {
-                                        kotlinx.coroutines.tasks.await(auth.signInWithEmailAndPassword(email, password))
+                                        auth.signInWithEmailAndPassword(email, password).await()
                                         onNavigateToHome()
                                     } catch (e: Exception) {
                                         // Login failed, try to register
                                         try {
-                                            kotlinx.coroutines.tasks.await(auth.createUserWithEmailAndPassword(email, password))
+                                            auth.createUserWithEmailAndPassword(email, password).await()
                                             onNavigateToHome()
                                         } catch (regEx: Exception) {
                                             resetMessage = e.message ?: "Authentication failed."
