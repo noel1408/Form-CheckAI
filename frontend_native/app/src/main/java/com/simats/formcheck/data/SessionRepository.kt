@@ -22,8 +22,8 @@ class SessionRepository {
             .build()
 
         Retrofit.Builder()
-            // Use local IP address for physical device testing
-            .baseUrl("http://192.168.1.9:8080/")
+            // Use production Render backend
+            .baseUrl("https://form-checkai.onrender.com/")
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
