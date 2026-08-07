@@ -21,26 +21,26 @@ function Upload() {
     if (file && currentUser) {
       setUploading(true);
       try {
-        const token = await currentUser.getIdToken();
-        const API_URL = import.meta.env.VITE_API_URL || "https://form-checkai.onrender.com";
-        
-        // Simulate a random score between 60 and 95
         const simulatedScore = Math.floor(Math.random() * (95 - 60 + 1) + 60);
         
-        await axios.post(`${API_URL}/api/sessions`, {
-          exerciseType: exercise,
+        const { collection, addDoc, serverTimestamp } = await import('firebase/firestore');
+        const { db } = await import('../lib/firebase');
+        
+        await addDoc(collection(db, 'sessions'), {
+          userId: currentUser.uid,
+          exercise: exercise,
           score: simulatedScore,
-          notes: "Good depth, keep your chest up.",
-          videoUrl: "simulated_url" // In a real app, upload to Firebase Storage first
-        }, {
-          headers: { Authorization: `Bearer ${token}` }
+          feedback: "Good depth, keep your chest up.",
+          issues: ["Slight forward lean"],
+          reps: 12,
+          createdAt: serverTimestamp()
         });
         
         setSuccess(true);
         setFile(null);
       } catch (err) {
         console.error("Failed to upload session", err);
-        alert("Failed to upload session");
+        alert("Failed to upload session: " + err.message);
       } finally {
         setUploading(false);
       }

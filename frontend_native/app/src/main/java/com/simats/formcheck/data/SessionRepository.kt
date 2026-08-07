@@ -32,31 +32,21 @@ class SessionRepository {
 
     suspend fun saveSession(exerciseId: String, assessment: ExerciseAssessment): String? {
         return try {
-            val user = FirebaseAuth.getInstance().currentUser
-            if (user == null) {
-                return null
-            }
-
-            // Get token
-            val tokenResult = user.getIdToken(false).await()
-            val token = tokenResult.token
+            val user = FirebaseAuth.getInstance().currentUser ?: return null
+            val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
             
-            if (token.isNullOrEmpty()) {
-                return null
-            }
-
-            val payload = SessionPayload(
-                exercise = exerciseId,
-                score = assessment.score,
-                feedback = assessment.feedback,
-                issues = assessment.issues,
-                reps = assessment.reps
+            val sessionData = hashMapOf(
+                "userId" to user.uid,
+                "exercise" to exerciseId,
+                "score" to assessment.score,
+                "feedback" to assessment.feedback,
+                "issues" to assessment.issues,
+                "reps" to assessment.reps,
+                "createdAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
             )
-
-            val response = api.saveSession("Bearer $token", payload)
-            if (response.isSuccessful) {
-                response.body()?.id
-            } else null
+            
+            val docRef = kotlinx.coroutines.tasks.await(db.collection("sessions").add(sessionData))
+            docRef.id
         } catch (e: Exception) {
             e.printStackTrace()
             null
@@ -66,18 +56,18 @@ class SessionRepository {
     suspend fun updateSession(sessionId: String, exerciseId: String, assessment: ExerciseAssessment): Boolean {
         return try {
             val user = FirebaseAuth.getInstance().currentUser ?: return false
-            val token = user.getIdToken(false).await().token ?: return false
-
-            val payload = SessionPayload(
-                exercise = exerciseId,
-                score = assessment.score,
-                feedback = assessment.feedback,
-                issues = assessment.issues,
-                reps = assessment.reps
+            val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+            
+            val payload = hashMapOf<String, Any>(
+                "exercise" to exerciseId,
+                "score" to assessment.score,
+                "feedback" to assessment.feedback,
+                "issues" to assessment.issues,
+                "reps" to assessment.reps
             )
-
-            val response = api.updateSession("Bearer $token", sessionId, payload)
-            response.isSuccessful
+            
+            kotlinx.coroutines.tasks.await(db.collection("sessions").document(sessionId).update(payload))
+            true
         } catch (e: Exception) {
             e.printStackTrace()
             false
