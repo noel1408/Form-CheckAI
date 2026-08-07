@@ -126,7 +126,7 @@ function Profile() {
             </div>
             <div>
               <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '14px' }}>Total Sessions</p>
-              <h2 style={{ margin: '4px 0 0 0', fontSize: '28px' }}>{sessions.length}</h2>
+              <h2 style={{ margin: '4px 0 0 0', fontSize: '28px' }}>{Math.floor(sessions.length / 5)}</h2>
             </div>
           </div>
 
