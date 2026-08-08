@@ -136,6 +136,12 @@ jobs:
         with:
           name: api-load-report
           path: "tests/Test Results/Excel/Load_Test_Report.xlsx"
+      - name: Upload Load Test CSV
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: api-load-report-csv
+          path: "tests/Test Results/Excel/Load_Test_Report.csv"
 
   test_backend_security:
     name: Run Backend Security Scans
@@ -156,6 +162,12 @@ jobs:
         with:
           name: security-report
           path: "tests/Test Results/Excel/Security_Assessment_Report.xlsx"
+      - name: Upload Security CSV
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-report-csv
+          path: "tests/Test Results/Excel/Security_Assessment_Report.csv"
 
   consolidate_reports:
     name: Consolidate & Verify Reports
