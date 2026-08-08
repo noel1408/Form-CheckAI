@@ -9,6 +9,7 @@ function Layout() {
         <Link style={{ marginRight: '10px' }} to="/dashboard">Dashboard</Link>
         <Link style={{ marginRight: '10px' }} to="/upload">Upload</Link>
         <Link style={{ marginRight: '10px' }} to="/reports">Reports</Link>
+        <Link style={{ marginRight: '10px' }} to="/camera">Camera Tracker</Link>
         <Link style={{ marginRight: '10px' }} to="/profile">Profile</Link>
       </nav>
       <main className="main-content" style={{ padding: '0 1rem' }}>

@@ -12,6 +12,7 @@ import Profile from './pages/Profile';
 import NotFound from './pages/NotFound';
 import Layout from './components/Layout';
 import PrivateRoute from './components/PrivateRoute';
+import CameraTracker from './pages/CameraTracker';
 
 function App() {
   return (
@@ -35,6 +36,7 @@ function App() {
             <Route path="/reports" element={<Reports />} />
             <Route path="/reports/:id" element={<Reports />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/camera" element={<CameraTracker />} />
           </Route>
           
           {/* 404 Not Found */}
