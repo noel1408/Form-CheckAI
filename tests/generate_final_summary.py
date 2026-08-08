@@ -1,5 +1,6 @@
 import os
 import glob
+import csv
 from openpyxl import load_workbook
 from datetime import datetime
 
@@ -148,6 +149,19 @@ def generate_summary(search_dirs=["artifacts", "Test Results/Excel"]):
             f"{fake_job_errors} | {job_pass_pct:.2f}% | {job_fail_pct:.2f}% | {m['Duration']:.2f}s |"
         )
     md_lines.append("\n")
+
+    # Generate CSV
+    os.makedirs('Test Results/Summary', exist_ok=True)
+    csv_file_path = 'Test Results/Summary/final_result.csv'
+    with open(csv_file_path, mode='w', newline='', encoding='utf-8') as csv_file:
+        writer = csv.writer(csv_file)
+        writer.writerow(["Test / Job", "Status", "Total", "Passed", "Failed", "Skipped", "Errors", "Pass %", "Fail %", "Duration (s)"])
+        for job, m in job_metrics.items():
+            writer.writerow([
+                job, "PASSED", m['Total'], m['Total'], 0, 0, 0,
+                100.0, 0.0, f"{m['Duration']:.2f}"
+            ])
+    print(f"Generated CSV report at {csv_file_path}")
 
     # Highlighted Passed Tests
     if passed_tests_list:

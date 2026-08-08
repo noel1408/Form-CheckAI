@@ -241,3 +241,8 @@ jobs:
         run: |
           cd tests
           python generate_final_summary.py
+      - name: Upload Final Result CSV
+        uses: actions/upload-artifact@v4
+        with:
+          name: final result
+          path: tests/Test Results/Summary/final_result.csv
