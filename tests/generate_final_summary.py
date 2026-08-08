@@ -1,7 +1,6 @@
 import os
 import glob
-from openpyxl import load_workbook, Workbook
-from openpyxl.styles import Font, PatternFill, Alignment
+from openpyxl import load_workbook
 from datetime import datetime
 
 def generate_summary(search_dirs=["artifacts", "Test Results/Excel"]):
@@ -9,7 +8,7 @@ def generate_summary(search_dirs=["artifacts", "Test Results/Excel"]):
     report_files = []
     for d in search_dirs:
         if os.path.exists(d):
-            # Find all xlsx files recursively, ignoring the final summary if it already exists
+            # Find all xlsx files recursively, ignoring the final summary if it somehow exists
             found = glob.glob(os.path.join(d, '**/*.xlsx'), recursive=True)
             for f in found:
                 if "Final_Test_Summary.xlsx" not in f:
@@ -44,10 +43,6 @@ def generate_summary(search_dirs=["artifacts", "Test Results/Excel"]):
 
             current_job = "Unknown Job"
             job_duration = 0.0
-            job_passed = 0
-            job_failed = 0
-            job_skipped = 0
-            job_errors = 0
 
             # Process rows
             for row in ws.iter_rows(min_row=2, values_only=True):
@@ -101,99 +96,71 @@ def generate_summary(search_dirs=["artifacts", "Test Results/Excel"]):
         except Exception as e:
             print(f"Error reading {file}: {e}")
 
-    # 3. Create Final Workbook
-    out_wb = Workbook()
+    # 3. Generate Markdown
+    md_lines = []
     
-    # --- Sheet 1: Overall Summary ---
-    ws1 = out_wb.active
-    ws1.title = "Overall Summary"
-    
-    ws1.append(["Metric", "Value"])
-    header_font = Font(bold=True, color="FFFFFF")
-    header_fill = PatternFill(start_color="4F81BD", end_color="4F81BD", fill_type="solid")
-    
-    for cell in ws1[1]:
-        cell.font = header_font
-        cell.fill = header_fill
-
+    # Overall Summary
     overall_pass_pct = (total_passed / total_tests * 100) if total_tests > 0 else 0.0
     overall_fail_pct = (total_failed / total_tests * 100) if total_tests > 0 else 0.0
     
     jobs_passed = sum(1 for j in job_metrics.values() if j["Failed"] == 0 and j["Errors"] == 0)
     jobs_failed = sum(1 for j in job_metrics.values() if j["Failed"] > 0 or j["Errors"] > 0)
+    jobs_skipped = 0 # Based on current extraction logic, jobs aren't inherently skipped, tests are.
 
-    summary_data = [
-        ["Total Test Jobs", len(job_metrics)],
-        ["Total Tests", total_tests],
-        ["Total Passed", total_passed],
-        ["Total Failed", total_failed],
-        ["Total Skipped", total_skipped],
-        ["Total Errors", total_errors],
-        ["Overall Pass %", f"{overall_pass_pct:.2f}%"],
-        ["Overall Fail %", f"{overall_fail_pct:.2f}%"],
-        ["Total Pipeline/Test Duration (s)", f"{total_duration:.2f}"],
-        ["Jobs Passed", jobs_passed],
-        ["Jobs Failed", jobs_failed],
-    ]
-    
-    for row in summary_data:
-        ws1.append(row)
-        
-    ws1.column_dimensions['A'].width = 35
-    ws1.column_dimensions['B'].width = 15
+    md_lines.append("## 🧪 Overall Test Summary\n")
+    md_lines.append("| Metric | Value |")
+    md_lines.append("| :--- | ---: |")
+    md_lines.append(f"| Total Test Jobs | {len(job_metrics)} |")
+    md_lines.append(f"| Total Tests | {total_tests} |")
+    md_lines.append(f"| ✅ Passed | {total_passed} |")
+    md_lines.append(f"| ❌ Failed | {total_failed} |")
+    md_lines.append(f"| ⏭️ Skipped | {total_skipped} |")
+    md_lines.append(f"| ⚠️ Errors | {total_errors} |")
+    md_lines.append(f"| Overall Pass Rate | {overall_pass_pct:.2f}% |")
+    md_lines.append(f"| Overall Fail Rate | {overall_fail_pct:.2f}% |")
+    md_lines.append(f"| Total Test Duration | {total_duration:.2f}s |")
+    md_lines.append(f"| Jobs Passed | {jobs_passed} |")
+    md_lines.append(f"| Jobs Failed | {jobs_failed} |")
+    md_lines.append(f"| Jobs Skipped | {jobs_skipped} |\n")
 
-    # --- Sheet 2: Test Details ---
-    ws2 = out_wb.create_sheet("Test Details")
-    headers2 = ["Test / Job", "Status", "Total Tests", "Passed", "Failed", "Skipped", "Errors", "Pass %", "Fail %", "Duration (s)"]
-    ws2.append(headers2)
+    # Job Details
+    md_lines.append("## 📊 Test-by-Test Details\n")
+    md_lines.append("| Test / Job | Status | Total | Passed | Failed | Skipped | Errors | Pass % | Fail % | Duration |")
+    md_lines.append("| :--- | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
     
-    for cell in ws2[1]:
-        cell.font = header_font
-        cell.fill = header_fill
-        
     for job, m in job_metrics.items():
         job_pass_pct = (m["Passed"] / m["Total"] * 100) if m["Total"] > 0 else 0.0
         job_fail_pct = (m["Failed"] / m["Total"] * 100) if m["Total"] > 0 else 0.0
-        status = "PASSED" if (m["Failed"] == 0 and m["Errors"] == 0) else "FAILED"
+        status_icon = "✅ Passed" if (m["Failed"] == 0 and m["Errors"] == 0) else "❌ Failed"
         
-        row = [
-            job, status, m["Total"], m["Passed"], m["Failed"], m["Skipped"], m["Errors"],
-            f"{job_pass_pct:.2f}%", f"{job_fail_pct:.2f}%", f"{m['Duration']:.2f}"
-        ]
-        ws2.append(row)
-        
-        # Color status
-        status_cell = ws2.cell(row=ws2.max_row, column=2)
-        status_cell.font = Font(color="00B050" if status == "PASSED" else "FF0000", bold=True)
-        
-    for col in "ABCDEFGHIJ":
-        ws2.column_dimensions[col].width = 15
-    ws2.column_dimensions['A'].width = 30
+        md_lines.append(
+            f"| {job} | {status_icon} | {m['Total']} | {m['Passed']} | {m['Failed']} | {m['Skipped']} | "
+            f"{m['Errors']} | {job_pass_pct:.2f}% | {job_fail_pct:.2f}% | {m['Duration']:.2f}s |"
+        )
+    md_lines.append("\n")
 
-    # --- Sheet 3: Failed Tests ---
-    ws3 = out_wb.create_sheet("Failed Tests")
-    headers3 = ["Test / Job", "Test Name", "Duration (s)", "Error Message"]
-    ws3.append(headers3)
-    
-    for cell in ws3[1]:
-        cell.font = header_font
-        cell.fill = PatternFill(start_color="C0504D", end_color="C0504D", fill_type="solid")
-        
-    if not failed_tests:
-        ws3.append(["No failed tests!", "", "", ""])
-    else:
+    # Failed Tests
+    if failed_tests:
+        md_lines.append("## ❌ Failed Tests\n")
+        md_lines.append("| Test / Job | Test Name | Error / Failure | Duration |")
+        md_lines.append("| :--- | :--- | :--- | :--- |")
         for f in failed_tests:
-            ws3.append([f["Job"], f["Test"], f"{f['Duration']:.2f}", f["Error"]])
-            
-    ws3.column_dimensions['A'].width = 30
-    ws3.column_dimensions['B'].width = 50
-    ws3.column_dimensions['C'].width = 15
-    ws3.column_dimensions['D'].width = 80
+            # Escape pipes in error messages for markdown tables
+            safe_error = f['Error'].replace('|', '&#124;').replace('\n', ' ')
+            md_lines.append(f"| {f['Job']} | {f['Test']} | {safe_error} | {f['Duration']:.2f}s |")
+        md_lines.append("\n")
 
-    os.makedirs('Test Results/Summary', exist_ok=True)
-    out_file = "Test Results/Summary/Final_Test_Summary.xlsx"
-    out_wb.save(out_file)
-    print(f"Successfully generated final summary at {out_file}")
+    markdown_output = "\n".join(md_lines)
+
+    # 4. Write to GITHUB_STEP_SUMMARY
+    summary_file = os.environ.get('GITHUB_STEP_SUMMARY')
+    if summary_file and os.path.exists(summary_file):
+        with open(summary_file, 'a', encoding='utf-8') as f:
+            f.write(markdown_output)
+        print(f"Appended test summary to {summary_file}")
+    else:
+        print("GITHUB_STEP_SUMMARY not found. Printing to stdout instead:\n")
+        print(markdown_output)
 
 if __name__ == "__main__":
     generate_summary()
