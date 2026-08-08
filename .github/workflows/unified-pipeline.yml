@@ -130,6 +130,12 @@ jobs:
         run: |
           cd tests
           python run_api_load_test.py || true
+      - name: Upload Load Test Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: api-load-report
+          path: "tests/Test Results/Excel/Load_Test_Report.xlsx"
 
   test_backend_security:
     name: Run Backend Security Scans
@@ -144,6 +150,12 @@ jobs:
         run: |
           cd tests
           python run_security_assessment.py || true
+      - name: Upload Security Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-report
+          path: "tests/Test Results/Excel/Security_Assessment_Report.xlsx"
 
   consolidate_reports:
     name: Consolidate & Verify Reports
@@ -168,6 +180,8 @@ jobs:
           # Move Excel Reports
           cp tests/artifacts/selenium-report/*.xlsx "$RUN_DIR/" 2>/dev/null || true
           cp tests/artifacts/appium-report/*.xlsx "$RUN_DIR/" 2>/dev/null || true
+          cp tests/artifacts/api-load-report/*.xlsx "$RUN_DIR/" 2>/dev/null || true
+          cp tests/artifacts/security-report/*.xlsx "$RUN_DIR/" 2>/dev/null || true
 
       - name: Generate GitHub Actions Markdown Dashboard
         run: |
@@ -205,3 +219,30 @@ jobs:
         with:
           name: Full-Test-Reports
           path: "public_reports/test reports/test#${{ github.run_number }}/"
+
+  final_test_summary:
+    name: Generate Final Excel Test Summary
+    needs: [consolidate_reports]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: tests/artifacts
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Python deps
+        run: pip install pandas openpyxl
+      - name: Generate Final Summary
+        run: |
+          cd tests
+          python generate_final_summary.py
+      - name: Upload Final Summary Excel
+        uses: actions/upload-artifact@v4
+        with:
+          name: Final-Test-Summary
+          path: "tests/Test Results/Summary/Final_Test_Summary.xlsx"

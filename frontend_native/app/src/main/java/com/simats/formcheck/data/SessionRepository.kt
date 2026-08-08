@@ -178,6 +178,7 @@ class SessionRepository {
                     val exercise = doc.getString("exercise") ?: ""
                     val feedback = doc.getString("feedback") ?: ""
                     val issues = doc.get("issues") as? List<String> ?: emptyList()
+                    val reps = doc.getLong("reps")?.toInt() ?: 0
                     val createdAt = doc.getTimestamp("createdAt")?.seconds ?: 0L
                     
                     // Store createdAt temporarily in a Pair for sorting
@@ -186,7 +187,8 @@ class SessionRepository {
                         exercise = exercise,
                         score = score,
                         feedback = feedback,
-                        issues = issues
+                        issues = issues,
+                        reps = reps
                     ), createdAt)
                 }
                 
